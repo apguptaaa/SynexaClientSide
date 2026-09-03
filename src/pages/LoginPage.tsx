@@ -251,9 +251,9 @@ export function LoginPage() {
             />
 
             <div className="relative">
-              <div className="flex justify-between absolute right-0 -top-[1.6rem]">
+              {/* <div className="flex justify-between absolute right-0 -top-[1.6rem]">
                 <a href="/forgot" className="text-[0.8rem] font-bold text-red-700 hover:text-red-800">Forgot password?</a>
-              </div>
+              </div> */}
               <Input
                 label="Password"
                 type="password"
