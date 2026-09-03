@@ -18,7 +18,8 @@ async function handleResponse<T>(res: Response): Promise<T> {
     window.location.href = '/login'
     throw new Error('Unauthorized')
   }
-  const data = await res.json()
+  const body = await res.text()
+  const data = body ? JSON.parse(body) : undefined
   if (!res.ok) {
     throw new Error(data?.message ?? `Request failed: ${res.status}`)
   }

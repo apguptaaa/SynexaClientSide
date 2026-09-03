@@ -145,11 +145,6 @@ const IcoEmoji = () => (
     <line x1="15" y1="9" x2="15.01" y2="9" strokeWidth="3" />
   </svg>
 )
-const IcoDots = () => (
-  <svg width={20} height={20} viewBox="0 0 24 24" fill={WA_ICON}>
-    <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
-  </svg>
-)
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Btn (icon button)
@@ -190,10 +185,10 @@ function NewChatModal({ myId, onClose, onCreated }: {
   const [groupName, setGroupName] = useState('')
   const [searching, setSearching] = useState(false)
   const [creating, setCreating] = useState(false)
-  const timer = useRef<ReturnType<typeof setTimeout>>()
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    clearTimeout(timer.current)
+    if (timer.current) clearTimeout(timer.current)
     if (!q.trim()) { setResults([]); return }
     timer.current = setTimeout(async () => {
       setSearching(true)
@@ -583,6 +578,7 @@ export function HomePage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [inputText, setInputText] = useState('')
   const [sending, setSending] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
   const [modal, setModal] = useState(false)
   const [sidebarQ, setSidebarQ] = useState('')
   const [filter, setFilter] = useState<'all' | 'direct' | 'groups'>('all')
@@ -593,6 +589,7 @@ export function HomePage() {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const activeRef = useRef<Room | null>(null)
+  const pendingMessages = useRef(new Map<string, string>())
   activeRef.current = activeRoom
 
   // ── init & socket connect ──
@@ -605,6 +602,11 @@ export function HomePage() {
 
         // initialize sockets after we have our token etc.
         socketService.connect()
+        list.forEach(room => socketService.joinRoom(room.id))
+
+        const savedRoomId = sessionStorage.getItem('activeRoomId')
+        const savedRoom = list.find(room => room.id === savedRoomId)
+        if (savedRoom) openRoom(savedRoom)
       } catch { /**/ }
     })()
 
@@ -616,6 +618,15 @@ export function HomePage() {
   // ── handle socket events ──
   useEffect(() => {
     const handleNewMessage = (msg: Message) => {
+      const messageKey = `${msg.roomId}|${msg.senderId}|${msg.text ?? ''}|${msg.fileUrl ?? ''}`
+      const optimisticId = pendingMessages.current.get(messageKey)
+      const wasOptimistic = Boolean(optimisticId)
+
+      if (optimisticId) {
+        pendingMessages.current.delete(messageKey)
+        setMessages(prev => prev.map(message => message.id === optimisticId ? msg : message))
+      }
+
       // 1. Update room unread / previews
       setRooms(prev => {
         const existing = prev.find(r => r.id === msg.roomId)
@@ -630,6 +641,8 @@ export function HomePage() {
         const updated = { ...existing, messages: [msg, ...existing.messages] }
         return sortRooms([updated, ...prev.filter(r => r.id !== msg.roomId)])
       })
+
+      if (wasOptimistic) return
 
       // 2. Append to current conversation if actively viewed
       if (activeRef.current?.id === msg.roomId) {
@@ -655,10 +668,38 @@ export function HomePage() {
     }
   }, [])
 
-  // Polling removed per user request to stop repeated background API hits
+  // Keep the open conversation current if a hosted socket event is delayed.
+  useEffect(() => {
+    if (!activeRoom) return
+
+    let cancelled = false
+    const syncMessages = async () => {
+      try {
+        const { messages: fresh } = await chatService.getMessages(activeRoom.id, undefined, 30)
+        if (cancelled) return
+
+        const ordered = fresh.slice().reverse()
+        setMessages(previous => {
+          const merged = [...previous]
+          ordered.forEach(message => {
+            if (!merged.some(existing => existing.id === message.id)) merged.push(message)
+          })
+          return merged
+        })
+      } catch { /**/ }
+    }
+
+    const timer = window.setInterval(syncMessages, 2000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [activeRoom])
 
   const openRoom = useCallback(async (room: Room) => {
     setActiveRoom(room)
+    sessionStorage.setItem('activeRoomId', room.id)
+    socketService.joinRoom(room.id)
     setMessages([])
     setNextCursor(null)
     setLoadingMsgs(true)
@@ -694,16 +735,36 @@ export function HomePage() {
 
   const send = async (fileUrl?: string, fileType?: string) => {
     if (!activeRoom || (!inputText.trim() && !fileUrl)) return
+    if (!socketService.isConnected()) {
+      setSendError('Realtime connection is not ready. Please try again.')
+      return
+    }
     setSending(true)
     const text = inputText.trim()
-    setInputText('')
-    if (inputRef.current) { inputRef.current.style.height = 'auto' }
+    setSendError(null)
     try {
-      await chatService.sendMessage(activeRoom.id, text || null, fileUrl ?? null, fileType ?? null)
-      const { messages: fresh } = await chatService.getMessages(activeRoom.id, undefined, 30)
-      setMessages(fresh.slice().reverse())
-      setTimeout(() => feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: 'smooth' }), 50)
-    } catch { /**/ }
+      const messageKey = `${activeRoom.id}|${me?.id ?? ''}|${text}|${fileUrl ?? ''}`
+      const optimisticId = `pending-${Date.now()}`
+      pendingMessages.current.set(messageKey, optimisticId)
+      socketService.sendMessage(activeRoom.id, text || null, fileUrl ?? null, fileType ?? null)
+
+      if (me) {
+        setMessages(prev => [...prev, {
+          id: optimisticId,
+          roomId: activeRoom.id,
+          senderId: me.id,
+          text: text || null,
+          fileUrl: fileUrl ?? null,
+          fileType: fileType ?? null,
+          createdAt: new Date().toISOString(),
+          sender: me,
+        }])
+      }
+      setInputText('')
+      if (inputRef.current) { inputRef.current.style.height = 'auto' }
+    } catch (error) {
+      setSendError(error instanceof Error ? error.message : 'Unable to send message')
+    }
     setSending(false)
   }
 
@@ -1019,6 +1080,11 @@ export function HomePage() {
               />
             </div>
 
+            {sendError && (
+              <div role="alert" style={{ color: '#b91c1c', fontSize: '0.75rem', maxWidth: 180 }}>
+                {sendError}
+              </div>
+            )}
             <IconBtn title="Send" onClick={() => send()} disabled={sending || !inputText.trim()}>
               <IcoSend />
             </IconBtn>
