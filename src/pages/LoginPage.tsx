@@ -63,8 +63,12 @@ export function LoginPage() {
       }
 
       window.location.href = '/home'
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during login')
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || 'An error occurred during login')
+      } else {
+        setError('An error occurred during login')
+      }
     } finally {
       setLoading(false)
     }
@@ -285,7 +289,7 @@ export function LoginPage() {
           <div className="flex justify-center mt-6 sm:mt-8">
             <span className="text-[0.7rem] text-slate-400 flex items-center gap-1.5 font-semibold bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100 uppercase tracking-wider">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v4M12 15v2" /><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /></svg>
-              Protected with JWT authentication
+              Protected with authentication
             </span>
           </div>
         </div>
