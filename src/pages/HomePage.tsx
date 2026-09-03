@@ -293,7 +293,7 @@ function NewChatModal({ myId, onClose, onCreated }: {
             <span style={{ color: WA_ICON, display: 'flex', flexShrink: 0 }}><IcoSearch /></span>
             <input value={q} onChange={e => setQ(e.target.value)}
               placeholder="Search by name or email"
-              style={{ border: 'none', background: 'none', outline: 'none', flex: 1, fontSize: '0.9rem', fontFamily: 'inherit' }} />
+              style={{ border: 'none', background: 'none', outline: 'none', flex: 1, fontSize: '0.9rem', fontFamily: 'inherit', color: '#000' }} />
           </div>
         </div>
 
