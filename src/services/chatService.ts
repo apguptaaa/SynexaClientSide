@@ -44,6 +44,6 @@ export const chatService = {
     return api.post(`/api/messages`, { roomId, text, fileUrl, fileType })
   },
 
-  markSeen: (roomId: string): Promise<void> =>
-    api.patch(`/api/messages/${roomId}/seen`, {}),
+  markSeen: (roomId: string, messageIds: string[]): Promise<void> =>
+    api.patch(`/api/messages/${roomId}/seen`, { messageIds }),
 }
