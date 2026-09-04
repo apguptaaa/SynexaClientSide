@@ -43,11 +43,29 @@ export const api = {
     return handleResponse<T>(res)
   },
 
+  put: async <T>(path: string, body: unknown): Promise<T> => {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify(body),
+    })
+    return handleResponse<T>(res)
+  },
+
   postForm: async <T>(path: string, formData: FormData): Promise<T> => {
     const res = await fetch(`${BASE_URL}${path}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${getToken()}` },
       body: formData,
+    })
+    return handleResponse<T>(res)
+  },
+
+  patch: async <T>(path: string, body: unknown): Promise<T> => {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify(body),
     })
     return handleResponse<T>(res)
   },

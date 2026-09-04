@@ -10,6 +10,7 @@ import type {
 
 export const chatService = {
   getMyProfile: (): Promise<User> => api.get('/api/users/me'),
+  updateMyProfile: (payload: { name?: string; avatarUrl?: string }): Promise<User> => api.put('/api/users/me', payload),
 
   searchUsers: (q: string): Promise<User[]> =>
     api.get(`/api/users/search?q=${encodeURIComponent(q)}`),
@@ -42,4 +43,7 @@ export const chatService = {
   sendMessage: (roomId: string, text: string | null, fileUrl: string | null, fileType: string | null): Promise<Message> => {
     return api.post(`/api/messages`, { roomId, text, fileUrl, fileType })
   },
+
+  markSeen: (roomId: string): Promise<void> =>
+    api.patch(`/api/messages/${roomId}/seen`, {}),
 }
