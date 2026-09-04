@@ -90,8 +90,12 @@ class SocketService {
     this.socket?.emit('message:send', { roomId, text, fileUrl, fileType })
   }
 
-  emitSeen(roomId: string) {
-    this.socket?.emit('message:seen', { roomId })
+  emitSeen(roomId: string, messageIds: string[]) {
+    this.socket?.emit('message:seen', { roomId, messageIds })
+  }
+
+  emitDelivered(roomId: string, messageIds: string[]) {
+    this.socket?.emit('message:delivered', { roomId, messageIds })
   }
 
   // ── Typing ──
