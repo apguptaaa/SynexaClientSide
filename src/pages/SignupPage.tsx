@@ -78,8 +78,12 @@ export function SignupPage() {
       }
 
       window.location.href = '/home'
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during registration')
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || 'An error occurred during registration')
+      } else {
+        setError('An error occurred during registration')
+      }
     } finally {
       setLoading(false)
     }

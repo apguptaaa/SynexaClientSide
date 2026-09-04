@@ -17,6 +17,7 @@ export interface Message {
   fileUrl: string | null
   fileType: string | null
   createdAt: string
+  status?: 'sent' | 'delivered' | 'seen'
   sender: {
     id: string
     name: string
@@ -55,4 +56,12 @@ export interface CreateRoomPayload {
 export interface UploadResponse {
   fileUrl: string
   fileType: string
+}
+
+export interface Notification {
+  id: string
+  type: string
+  message: string
+  roomId?: string
+  createdAt: string
 }

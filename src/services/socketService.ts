@@ -1,13 +1,21 @@
 import { io, Socket } from 'socket.io-client'
-import type { Message, Room } from '../types/chat'
+import type { Message, Room, Notification } from '../types/chat'
 
-// Ensure we point to the backend URL for socket connection
 const BACKEND_URL = 'https://synexabackend.onrender.com'
+
+type TypingPayload = { roomId: string; userId: string; userName: string }
+type SeenPayload = { roomId: string; userId: string; messageIds: string[] }
+type DeliveredPayload = { roomId: string; messageIds: string[] }
 
 class SocketService {
   private socket: Socket | null = null
   private messageListeners = new Set<(message: Message) => void>()
   private roomListeners = new Set<(room: Room) => void>()
+  private typingStartListeners = new Set<(payload: TypingPayload) => void>()
+  private typingStopListeners = new Set<(payload: TypingPayload) => void>()
+  private seenListeners = new Set<(payload: SeenPayload) => void>()
+  private deliveredListeners = new Set<(payload: DeliveredPayload) => void>()
+  private notificationListeners = new Set<(n: Notification) => void>()
   private joinedRooms = new Set<string>()
 
   connect() {
@@ -18,7 +26,7 @@ class SocketService {
 
     this.socket = io(BACKEND_URL, {
       auth: { token },
-      transports: ['websocket', 'polling'], // Use Websocket primarily
+      transports: ['websocket', 'polling'],
     })
 
     this.socket.on('connect', () => {
@@ -30,12 +38,32 @@ class SocketService {
       console.log('Disconnected from socket')
     })
 
-    this.socket.on('message:new', message => {
-      this.messageListeners.forEach(listener => listener(message))
+    this.socket.on('message:new', (message: Message) => {
+      this.messageListeners.forEach(l => l(message))
     })
 
-    this.socket.on('room_updated', room => {
-      this.roomListeners.forEach(listener => listener(room))
+    this.socket.on('room_updated', (room: Room) => {
+      this.roomListeners.forEach(l => l(room))
+    })
+
+    this.socket.on('message:delivered', (payload: DeliveredPayload) => {
+      this.deliveredListeners.forEach(l => l(payload))
+    })
+
+    this.socket.on('message:seen', (payload: SeenPayload) => {
+      this.seenListeners.forEach(l => l(payload))
+    })
+
+    this.socket.on('typing:start', (payload: TypingPayload) => {
+      this.typingStartListeners.forEach(l => l(payload))
+    })
+
+    this.socket.on('typing:stop', (payload: TypingPayload) => {
+      this.typingStopListeners.forEach(l => l(payload))
+    })
+
+    this.socket.on('notification:new', (n: Notification) => {
+      this.notificationListeners.forEach(l => l(n))
     })
   }
 
@@ -51,30 +79,55 @@ class SocketService {
     return this.socket?.connected ?? false
   }
 
-  onNewMessage(callback: (message: Message) => void) {
-    this.messageListeners.add(callback)
-  }
-
-  offNewMessage(callback: (message: Message) => void) {
-    this.messageListeners.delete(callback)
-  }
-
+  // ── Room ──
   joinRoom(roomId: string) {
     this.joinedRooms.add(roomId)
     if (this.socket?.connected) this.socket.emit('room:join', roomId)
   }
 
+  // ── Messages ──
   sendMessage(roomId: string, text: string | null, fileUrl: string | null, fileType: string | null) {
     this.socket?.emit('message:send', { roomId, text, fileUrl, fileType })
   }
 
-  onRoomUpdated(callback: (room: Room) => void) {
-    this.roomListeners.add(callback)
+  emitSeen(roomId: string) {
+    this.socket?.emit('message:seen', { roomId })
   }
-  
-  offRoomUpdated(callback: (room: Room) => void) {
-    this.roomListeners.delete(callback)
+
+  // ── Typing ──
+  emitTypingStart(roomId: string) {
+    this.socket?.emit('typing:start', { roomId })
   }
+
+  emitTypingStop(roomId: string) {
+    this.socket?.emit('typing:stop', { roomId })
+  }
+
+  // ── Listeners: message:new ──
+  onNewMessage(callback: (message: Message) => void) { this.messageListeners.add(callback) }
+  offNewMessage(callback: (message: Message) => void) { this.messageListeners.delete(callback) }
+
+  // ── Listeners: room updated ──
+  onRoomUpdated(callback: (room: Room) => void) { this.roomListeners.add(callback) }
+  offRoomUpdated(callback: (room: Room) => void) { this.roomListeners.delete(callback) }
+
+  // ── Listeners: delivered ──
+  onDelivered(callback: (p: DeliveredPayload) => void) { this.deliveredListeners.add(callback) }
+  offDelivered(callback: (p: DeliveredPayload) => void) { this.deliveredListeners.delete(callback) }
+
+  // ── Listeners: seen ──
+  onSeen(callback: (p: SeenPayload) => void) { this.seenListeners.add(callback) }
+  offSeen(callback: (p: SeenPayload) => void) { this.seenListeners.delete(callback) }
+
+  // ── Listeners: typing ──
+  onTypingStart(callback: (p: TypingPayload) => void) { this.typingStartListeners.add(callback) }
+  offTypingStart(callback: (p: TypingPayload) => void) { this.typingStartListeners.delete(callback) }
+  onTypingStop(callback: (p: TypingPayload) => void) { this.typingStopListeners.add(callback) }
+  offTypingStop(callback: (p: TypingPayload) => void) { this.typingStopListeners.delete(callback) }
+
+  // ── Listeners: notifications ──
+  onNotification(callback: (n: Notification) => void) { this.notificationListeners.add(callback) }
+  offNotification(callback: (n: Notification) => void) { this.notificationListeners.delete(callback) }
 }
 
 export const socketService = new SocketService()

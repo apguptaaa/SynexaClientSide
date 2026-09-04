@@ -4,6 +4,8 @@ import { SignupPage } from '../pages/SignupPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import type { ReactElement } from 'react'
 
+import { useEffect } from 'react'
+
 type RouteConfig = {
   path: string
   element: ReactElement
@@ -12,8 +14,14 @@ type RouteConfig = {
 
 function PrivateRoute({ element }: { element: ReactElement }): ReactElement {
   const token = localStorage.getItem('accessToken')
+
+  useEffect(() => {
+    if (!token) {
+      window.location.href = '/login'
+    }
+  }, [token])
+
   if (!token) {
-    window.location.href = '/login'
     return <></>
   }
   return element
