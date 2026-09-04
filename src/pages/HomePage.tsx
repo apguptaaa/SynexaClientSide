@@ -812,33 +812,23 @@ export function HomePage() {
     }
   }, [])
 
-  // Keep the open conversation current if a hosted socket event is delayed.
-  useEffect(() => {
-    if (!activeRoom) return
-
-    let cancelled = false
-    const syncMessages = async () => {
-      try {
-        const { messages: fresh } = await chatService.getMessages(activeRoom.id, undefined, 30)
-        if (cancelled) return
-
-        const ordered = fresh.slice().reverse()
-        setMessages(previous => {
-          const merged = [...previous]
-          ordered.forEach(message => {
-            if (!merged.some(existing => existing.id === message.id)) merged.push(message)
-          })
-          return merged
-        })
-      } catch { /**/ }
-    }
-
-    const timer = window.setInterval(syncMessages, 2000)
-    return () => {
-      cancelled = true
-      window.clearInterval(timer)
-    }
-  }, [activeRoom])
+  const openRoom = useCallback(async (room: Room) => {
+    setActiveRoom(room)
+    sessionStorage.setItem('activeRoomId', room.id)
+    socketService.joinRoom(room.id)
+    setMessages([])
+    setNextCursor(null)
+    setLoadingMsgs(true)
+    setShowSidebar(false) // mobile: switch to chat panel
+    try {
+      const { messages: msgs, nextCursor: cur } = await chatService.getMessages(room.id, undefined, 30)
+      setMessages(msgs.slice().reverse())
+      setNextCursor(cur)
+    } catch { /**/ }
+    setLoadingMsgs(false)
+    setTimeout(() => feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight }), 60)
+    inputRef.current?.focus()
+  }, [])
 
   const loadMore = async () => {
     if (!activeRoom || !nextCursor || loadingMore) return
