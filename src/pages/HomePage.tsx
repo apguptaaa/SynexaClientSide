@@ -1297,10 +1297,10 @@ export function HomePage() {
                   position: 'absolute', top: 40, right: 0,
                   background: '#fff', borderRadius: 8,
                   boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                  zIndex: 200, padding: '8px 0', minWidth: 160
+                  zIndex: 200, padding: '4px 0', minWidth: 140
                 }}>
                   <div
-                    style={{ padding: '10px 20px', cursor: 'pointer', fontSize: '0.9rem', color: '#4a4a4a', transition: 'background 0.2s' }}
+                    style={{ padding: '4px 12px', cursor: 'pointer', fontSize: '0.9rem', color: '#4a4a4a', transition: 'background 0.2s' }}
                     onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     onClick={() => {
@@ -1310,7 +1310,7 @@ export function HomePage() {
                   >
                     Contact Info
                   </div>
-                  <div
+                  {/* <div
                     style={{ padding: '10px 20px', cursor: 'pointer', fontSize: '0.9rem', color: '#d32f2f', transition: 'background 0.2s', borderTop: '1px solid #eee' }}
                     onMouseEnter={e => e.currentTarget.style.background = '#fcfcfc'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -1320,7 +1320,7 @@ export function HomePage() {
                     }}
                   >
                     Exit Chat
-                  </div>
+                  </div> */}
                 </div>
               )}
             </div>
