@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
+import EmojiPicker from 'emoji-picker-react'
+import type { EmojiClickData } from 'emoji-picker-react'
 import Cropper from 'react-easy-crop'
 import type { Area } from 'react-easy-crop'
 import { chatService } from '../services/chatService'
@@ -519,8 +521,8 @@ function Bubble({ msg, isSelf, showSender, showTail, isLast }: { msg: Message; i
           }}>
             <span style={{ fontSize: '0.62rem', color: 'rgba(0,0,0,0.45)', whiteSpace: 'nowrap' }}>{fmtTime(msg.createdAt)}</span>
             {isSelf && (
-              msg.status === 'seen' ? <IcoCheckSeen /> :
-                msg.status === 'delivered' ? <IcoCheckDelivered /> :
+              (msg.status === 'seen' || msg.readTime || msg.readAt) ? <IcoCheckSeen /> :
+                (msg.status === 'delivered' || msg.deliveredTime || msg.deliveredAt) ? <IcoCheckDelivered /> :
                   <IcoCheckSent />
             )}
           </div>
@@ -585,8 +587,8 @@ function RoomItem({ room, myId, active, onClick, unreadCount }: {
           display: 'flex', alignItems: 'center', gap: 4
         }}>
           {lastMsg?.senderId === myId && (
-            lastMsg.status === 'seen' ? <IcoCheckSeen /> :
-              lastMsg.status === 'delivered' ? <IcoCheckDelivered /> :
+            (lastMsg.status === 'seen' || lastMsg.readTime || lastMsg.readAt) ? <IcoCheckSeen /> :
+              (lastMsg.status === 'delivered' || lastMsg.deliveredTime || lastMsg.deliveredAt) ? <IcoCheckDelivered /> :
                 <IcoCheckSent />
           )}
           <div style={{
@@ -641,6 +643,14 @@ export function HomePage() {
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
   // New Message Pill
   const [showNewMsgPill, setShowNewMsgPill] = useState(false)
+  // Emoji Picker
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const emojiPickerRef = useRef<HTMLDivElement>(null)
+  // Attachment Menu
+  const [showAttachMenu, setShowAttachMenu] = useState(false)
+  const attachMenuRef = useRef<HTMLDivElement>(null)
+  const imgFileRef = useRef<HTMLInputElement>(null)
+  const docFileRef = useRef<HTMLInputElement>(null)
   // Toast notification
   const [toast, setToast] = useState<{ message: string; id: string } | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -701,6 +711,20 @@ export function HomePage() {
     setTimeout(() => feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight }), 60)
     inputRef.current?.focus()
   }
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+        setShowEmojiPicker(false)
+      }
+      if (attachMenuRef.current && !attachMenuRef.current.contains(e.target as Node)) {
+        setShowAttachMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   // ── init & socket connect ──
   useEffect(() => {
@@ -1236,6 +1260,10 @@ export function HomePage() {
             display: 'flex', alignItems: 'center', gap: 12,
             borderBottom: '1px solid #e9edef', flexShrink: 0,
           }}>
+            <button className="chat-back-btn" onClick={() => setShowSidebar(true)}
+              style={{ padding: '0 4px 0 0', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer' }}>
+              <IcoBack color={WA_ICON} />
+            </button>
             {activeRoom.isGroup ? (
               <div style={{
                 width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
@@ -1269,10 +1297,10 @@ export function HomePage() {
                   position: 'absolute', top: 40, right: 0,
                   background: '#fff', borderRadius: 8,
                   boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                  zIndex: 200, padding: '8px 0', minWidth: 160
+                  zIndex: 200, padding: '4px 0', minWidth: 140
                 }}>
                   <div
-                    style={{ padding: '10px 20px', cursor: 'pointer', fontSize: '0.9rem', color: '#4a4a4a', transition: 'background 0.2s' }}
+                    style={{ padding: '4px 12px', cursor: 'pointer', fontSize: '0.9rem', color: '#4a4a4a', transition: 'background 0.2s' }}
                     onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     onClick={() => {
@@ -1282,7 +1310,7 @@ export function HomePage() {
                   >
                     Contact Info
                   </div>
-                  <div
+                  {/* <div
                     style={{ padding: '10px 20px', cursor: 'pointer', fontSize: '0.9rem', color: '#d32f2f', transition: 'background 0.2s', borderTop: '1px solid #eee' }}
                     onMouseEnter={e => e.currentTarget.style.background = '#fcfcfc'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -1292,7 +1320,7 @@ export function HomePage() {
                     }}
                   >
                     Exit Chat
-                  </div>
+                  </div> */}
                 </div>
               )}
             </div>
@@ -1473,14 +1501,108 @@ export function HomePage() {
 
           {/* input bar */}
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 8,
+            position: 'relative', flexShrink: 0,
+            display: 'flex', alignItems: 'flex-end', gap: 8,
             padding: '10px 16px', background: WA_PANEL_BG,
-            flexShrink: 0, minHeight: 62
           }}>
-            <IconBtn title="Emoji"><IcoEmoji /></IconBtn>
-            <IconBtn onClick={() => fileRef.current?.click()} title="Attach a file">
+            {/* Emoji Picker Popup */}
+            {showEmojiPicker && (
+              <div ref={emojiPickerRef} style={{
+                position: 'absolute', bottom: 68, left: 0, zIndex: 300,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.18)', borderRadius: 14, overflow: 'hidden',
+              }}>
+                <EmojiPicker
+                  onEmojiClick={(data: EmojiClickData) => {
+                    setInputText(prev => prev + data.emoji)
+                    inputRef.current?.focus()
+                  }}
+                  skinTonesDisabled
+                  height={420}
+                  width={340}
+                  searchDisabled={false}
+                  previewConfig={{ showPreview: false }}
+                />
+              </div>
+            )}
+            {/* Attachment Menu */}
+            {showAttachMenu && (
+              <div ref={attachMenuRef} style={{
+                position: 'absolute', bottom: 68, left: 44, zIndex: 300,
+                background: '#fff', borderRadius: 16,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+                padding: '16px 10px 10px',
+                display: 'flex', flexDirection: 'column', gap: 4, minWidth: 200,
+                animation: 'scaleIn 0.18s cubic-bezier(0.23,1,0.32,1)',
+                transformOrigin: 'bottom left',
+              }}>
+                {([
+                  { label: 'Image & Video', accept: 'image/*,video/*', ref: imgFileRef, color: '#7c4dff', icon: (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>) },
+                  { label: 'Document', accept: '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar', ref: docFileRef, color: '#2196f3', icon: (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>) },
+                ] as const).map(item => (
+                  <div key={item.label}
+                    onClick={() => { (item.ref as React.RefObject<HTMLInputElement>).current?.click(); setShowAttachMenu(false) }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
+                      transition: 'background 0.12s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{
+                      width: 44, height: 44, borderRadius: '50%',
+                      background: item.color, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: `0 2px 8px ${item.color}55`, flexShrink: 0
+                    }}>
+                      {item.icon}
+                    </div>
+                    <span style={{ fontSize: '0.92rem', fontWeight: 500, color: '#303030' }}>
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
+                {/* Location Option */}
+                <div
+                  onClick={() => {
+                    setShowAttachMenu(false)
+                    if (navigator.geolocation) {
+                      navigator.geolocation.getCurrentPosition(pos => {
+                        const { latitude, longitude } = pos.coords
+                        const mapsUrl = `https://maps.google.com/?q=${latitude},${longitude}`
+                        setInputText(prev => prev + mapsUrl)
+                        inputRef.current?.focus()
+                      }, () => alert('Location access denied.'))
+                    } else { alert('Geolocation not supported.') }
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 14,
+                    padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
+                    transition: 'background 0.12s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <div style={{
+                    width: 44, height: 44, borderRadius: '50%',
+                    background: '#4caf50', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 2px 8px #4caf5055', flexShrink: 0
+                  }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                  </div>
+                  <span style={{ fontSize: '0.92rem', fontWeight: 500, color: '#303030' }}>Location</span>
+                </div>
+              </div>
+            )}
+            <IconBtn title="Emoji" onClick={() => setShowEmojiPicker(p => !p)}><IcoEmoji /></IconBtn>
+            <IconBtn onClick={() => { setShowAttachMenu(p => !p); setShowEmojiPicker(false) }} title="Attach">
               <IcoAttach />
             </IconBtn>
+            {/* Hidden file inputs */}
+            <input ref={imgFileRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleFile} />
+            <input ref={docFileRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" style={{ display: 'none' }} onChange={handleFile} />
             <input ref={fileRef} type="file" style={{ display: 'none' }} onChange={handleFile} />
 
             <div style={{
@@ -1519,7 +1641,6 @@ export function HomePage() {
       )}
     </div>
   )
-
   return (
     <>
       {/* Responsive styles injected globally */}

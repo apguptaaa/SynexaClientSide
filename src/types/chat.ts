@@ -18,6 +18,10 @@ export interface Message {
   fileType: string | null
   createdAt: string
   status?: 'sent' | 'delivered' | 'seen'
+  deliveredAt?: string
+  deliveredTime?: string
+  readAt?: string
+  readTime?: string
   sender: {
     id: string
     name: string

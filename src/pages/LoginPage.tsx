@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
-
+import { useEffect } from 'react'
 const GoogleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -37,7 +37,29 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [backendReady, setBackendReady] = useState(false)
+  const [checkingBackend, setCheckingBackend] = useState(true)
+  useEffect(() => {
+    let isMounted = true
 
+    const pingBackend = async () => {
+      try {
+        const res = await fetch('https://synexabackend.onrender.com/health')
+        if (isMounted && res.ok) {
+          setBackendReady(true)
+          setCheckingBackend(false)
+        } else {
+          setTimeout(pingBackend, 3000)
+        }
+      } catch {
+        if (isMounted) setTimeout(pingBackend, 3000)
+      }
+    }
+
+    pingBackend()
+
+    return () => { isMounted = false }
+  }, [])
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -73,7 +95,66 @@ export function LoginPage() {
       setLoading(false)
     }
   }
+  if (checkingBackend) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-white font-sans relative overflow-hidden">
+        {/* Background subtle circles matching brand */}
+        <div className="absolute -top-[20%] -left-[10%] w-[500px] h-[500px] border-[40px] border-red-50 rounded-full"></div>
+        <div className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] border-[40px] border-red-50 rounded-full"></div>
 
+        <div className="relative z-10 flex flex-col items-center">
+          {/* Logo */}
+          <div className="flex items-center gap-2.5 mb-8">
+            <div className="w-10 h-10 bg-[#8c0817] rounded-xl flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(140,8,23,0.4)]">
+              <img
+                src="/assets/logos/synexa-logo.svg"
+                alt="Synexa"
+                width={20}
+                height={20}
+                className="brightness-0 invert"
+              />
+            </div>
+            <span className="text-[1.4rem] font-extrabold text-slate-900 tracking-tight">Synexa</span>
+          </div>
+
+          {/* Chat bubble loader */}
+          <div className="bg-slate-100 border border-slate-200 rounded-[20px] rounded-tl-sm px-5 py-4 shadow-sm flex items-center gap-1.5">
+            <span className="chat-dot w-2.5 h-2.5 bg-[#8c0817] rounded-full"></span>
+            <span className="chat-dot w-2.5 h-2.5 bg-[#8c0817] rounded-full"></span>
+            <span className="chat-dot w-2.5 h-2.5 bg-[#8c0817] rounded-full"></span>
+          </div>
+
+          {/* Status text */}
+          <p className="text-slate-500 text-[0.9rem] font-semibold mt-6">
+            Connecting to your workspace...
+          </p>
+          {/* <p className="text-slate-400 text-[0.75rem] font-medium mt-1.5">
+            This can take up to 30 seconds on first load
+          </p> */}
+        </div>
+
+        <style>{`
+        .chat-dot {
+          animation: chatBounce 1.4s infinite ease-in-out;
+        }
+        .chat-dot:nth-child(1) { animation-delay: 0s; }
+        .chat-dot:nth-child(2) { animation-delay: 0.2s; }
+        .chat-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes chatBounce {
+          0%, 60%, 100% {
+            transform: translateY(0);
+            opacity: 0.5;
+          }
+          30% {
+            transform: translateY(-6px);
+            opacity: 1;
+          }
+        }
+      `}</style>
+      </div>
+    )
+  }
   return (
     <div className="h-screen w-full flex bg-white font-sans overflow-hidden">
       {/* Left Panel */}
@@ -107,10 +188,10 @@ export function LoginPage() {
           <div className="relative w-full max-w-[360px] z-20 flex-shrink min-h-0">
             <div className="bg-white rounded-[1.25rem] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.4)] flex flex-col overflow-hidden">
               {/* Header */}
-              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-white z-10">
+              <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between bg-white z-10">
                 <div className="flex flex-col">
                   <span className="font-extrabold text-slate-800 flex items-center gap-1.5 text-[0.95rem]">
-                    <span className="text-slate-400 font-medium">#</span> engineering
+                    <span className="text-slate-400 font-medium">#</span> Synexa
                   </span>
                   <span className="text-[10px] text-slate-500 font-semibold mt-0.5">3 online · 1 away</span>
                 </div>
@@ -164,7 +245,7 @@ export function LoginPage() {
                 </div>
 
                 {/* Dev Patel Message */}
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <div className="relative shrink-0 mt-0.5">
                     <div className="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-[11px] shadow-sm">DP</div>
                   </div>
@@ -174,7 +255,7 @@ export function LoginPage() {
                       <span className="text-[10px] text-slate-400 font-semibold">09:43</span>
                     </div>
                     <div className="bg-slate-100 text-slate-700 px-3.5 py-2.5 rounded-[14px] rounded-tl-sm text-[0.8rem] font-medium leading-relaxed shadow-sm border border-slate-200/60 max-w-[95%]">
-                      JWT refresh rotation is merged too — tokens expire in 15m, refresh in 7d.
+                      Tokens expire in 15m, refresh in 7d.
                     </div>
                   </div>
                 </div>
@@ -214,7 +295,7 @@ export function LoginPage() {
       </div>
 
       {/* Right Panel Form */}
-      <div className="w-full lg:w-[45%] h-full flex flex-col items-center justify-center p-6 sm:p-8 lg:p-16 relative bg-white overflow-y-auto">
+      <div className="w-full lg:w-[45%] h-full flex flex-col items-center justify-center p-6 sm:p-8 lg:p-12 relative bg-white overflow-y-auto">
         <div className="w-full max-w-[400px] py-6 sm:py-0">
           <h2 className="text-[2rem] sm:text-[2.2rem] font-bold text-slate-900 tracking-tight mb-2">
             Welcome back
