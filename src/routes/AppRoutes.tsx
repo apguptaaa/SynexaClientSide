@@ -35,7 +35,7 @@ const routes: RouteConfig[] = [
 ]
 
 export function AppRoutes() {
-  const pathname = window.location.pathname
+  const pathname = window.location.pathname.replace(/\/+$/, '') || '/'
   const matchedRoute = routes.find((route) => route.path === pathname)
 
   if (!matchedRoute) {
