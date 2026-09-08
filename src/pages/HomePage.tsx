@@ -534,8 +534,8 @@ function Bubble({ msg, isSelf, showSender, showTail, isLast }: { msg: Message; i
 //  Sidebar — room list item
 // ─────────────────────────────────────────────────────────────────────────────
 
-function RoomItem({ room, myId, active, onClick }: {
-  room: Room; myId: string; active: boolean; onClick: () => void
+function RoomItem({ room, myId, active, onClick, unreadCount }: {
+  room: Room; myId: string; active: boolean; onClick: () => void; unreadCount?: number
 }) {
   const name = roomName(room, myId)
   const avatar = roomAvatar(room, myId)
@@ -595,6 +595,15 @@ function RoomItem({ room, myId, active, onClick }: {
           }}>
             {preview || <span>No messages yet</span>}
           </div>
+          {(unreadCount ?? 0) > 0 && (
+            <div style={{
+              background: '#25d366', color: '#fff', fontSize: '0.72rem', fontWeight: 600,
+              borderRadius: 12, minWidth: 20, height: 20, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', padding: '0 6px', flexShrink: 0
+            }}>
+              {unreadCount}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -628,6 +637,10 @@ export function HomePage() {
 
   // Typing indicators: roomId -> list of user names typing
   const [typingUsers, setTypingUsers] = useState<Record<string, string[]>>({})
+  // Unread counts: roomId -> count
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
+  // New Message Pill
+  const [showNewMsgPill, setShowNewMsgPill] = useState(false)
   // Toast notification
   const [toast, setToast] = useState<{ message: string; id: string } | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -652,11 +665,16 @@ export function HomePage() {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const activeRef = useRef<Room | null>(null)
+  const meRef = useRef<User | null>(null)
   const pendingMessages = useRef(new Map<string, string>())
 
   useEffect(() => {
     activeRef.current = activeRoom
   }, [activeRoom])
+
+  useEffect(() => {
+    meRef.current = me
+  }, [me])
 
   const openRoom = async (room: Room) => {
     setActiveRoom(room)
@@ -666,17 +684,22 @@ export function HomePage() {
     setNextCursor(null)
     setLoadingMsgs(true)
     setShowSidebar(false) // mobile: switch to chat panel
+    setUnreadCounts(prev => ({ ...prev, [room.id]: 0 })) // clear unreads
     try {
       const { messages: msgs, nextCursor: cur } = await chatService.getMessages(room.id, undefined, 30)
       setMessages(msgs.slice().reverse())
       setNextCursor(cur)
+
+      // Mark messages as seen via REST + socket
+      const unseenIds = msgs.filter(m => m.senderId !== me?.id && m.status !== 'seen').map(m => m.id)
+      if (unseenIds.length > 0) {
+        chatService.markSeen(room.id, unseenIds).catch(() => { })
+        socketService.emitSeen(room.id, unseenIds)
+      }
     } catch { /**/ }
     setLoadingMsgs(false)
     setTimeout(() => feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight }), 60)
     inputRef.current?.focus()
-    // Mark messages as seen via REST + socket
-    chatService.markSeen(room.id).catch(() => { })
-    socketService.emitSeen(room.id)
   }
 
   // ── init & socket connect ──
@@ -736,6 +759,19 @@ export function HomePage() {
 
       if (wasOptimistic) return
 
+      // Handle delivery and read receipts
+      if (msg.senderId !== meRef.current?.id) {
+        if (activeRef.current?.id === msg.roomId) {
+          chatService.markSeen(msg.roomId, [msg.id]).catch(() => { })
+          socketService.emitSeen(msg.roomId, [msg.id])
+          setShowNewMsgPill(true)
+          setTimeout(() => setShowNewMsgPill(false), 2500)
+        } else {
+          socketService.emitDelivered(msg.roomId, [msg.id])
+          setUnreadCounts(prev => ({ ...prev, [msg.roomId]: (prev[msg.roomId] || 0) + 1 }))
+        }
+      }
+
       // 2. Append to current conversation if actively viewed
       if (activeRef.current?.id === msg.roomId) {
         setMessages(prev => {
@@ -748,29 +784,83 @@ export function HomePage() {
     }
 
     const handleRoomUpdated = (room: Room) => {
-      setRooms(prev => sortRooms([room, ...prev.filter(r => r.id !== room.id)]))
+      setRooms(prev => {
+        const existing = prev.find(r => r.id === room.id);
+        if (existing) {
+          const hierarchy = { 'seen': 3, 'delivered': 2, 'sent': 1, undefined: 0 };
+          const mergedMessages = room.messages.map(m => {
+            const exMsg = existing.messages.find(ex => ex.id === m.id);
+            if (exMsg) {
+              const currentLvl = hierarchy[m.status as keyof typeof hierarchy] || 0;
+              const exLvl = hierarchy[exMsg.status as keyof typeof hierarchy] || 0;
+              if (exLvl > currentLvl) {
+                return { ...m, status: exMsg.status };
+              }
+            }
+            return m;
+          });
+          room = { ...room, messages: mergedMessages };
+        }
+        return sortRooms([room, ...prev.filter(r => r.id !== room.id)])
+      })
     }
 
-    const handleDelivered = ({ roomId, messageIds }: { roomId: string; messageIds: string[] }) => {
-      setMessages(prev => prev.map(m =>
-        messageIds.includes(m.id) ? { ...m, status: 'delivered' as const } : m
-      ))
-      setRooms(prev => prev.map(r =>
-        r.id === roomId
-          ? { ...r, messages: r.messages.map(m => messageIds.includes(m.id) ? { ...m, status: 'delivered' as const } : m) }
-          : r
-      ))
+    const handleDelivered = (payload: any) => {
+      console.log('🔴 SOCKET RECEIVED handleDelivered', payload);
+      const { roomId, messageIds } = payload;
+      setMessages(prev => prev.map(m => {
+        if (messageIds && Array.isArray(messageIds) && messageIds.includes(m.id)) {
+          return { ...m, status: 'delivered' as const };
+        }
+        if ((!messageIds || messageIds.length === 0) && (!roomId || m.roomId === roomId) && m.senderId === meRef.current?.id && m.status !== 'seen' && m.status !== 'delivered') {
+          return { ...m, status: 'delivered' as const };
+        }
+        return m;
+      }))
+      setRooms(prev => prev.map(r => {
+        let changed = false;
+        const newMsgs = r.messages.map(m => {
+          if (messageIds && Array.isArray(messageIds) && messageIds.includes(m.id)) {
+            changed = true;
+            return { ...m, status: 'delivered' as const };
+          }
+          if ((!messageIds || messageIds.length === 0) && (!roomId || r.id === roomId) && m.senderId === meRef.current?.id && m.status !== 'seen' && m.status !== 'delivered') {
+            changed = true;
+            return { ...m, status: 'delivered' as const };
+          }
+          return m;
+        });
+        return changed ? { ...r, messages: newMsgs } : r;
+      }))
     }
 
-    const handleSeen = ({ roomId, messageIds }: { roomId: string; userId: string; messageIds: string[] }) => {
-      setMessages(prev => prev.map(m =>
-        messageIds.includes(m.id) ? { ...m, status: 'seen' as const } : m
-      ))
-      setRooms(prev => prev.map(r =>
-        r.id === roomId
-          ? { ...r, messages: r.messages.map(m => messageIds.includes(m.id) ? { ...m, status: 'seen' as const } : m) }
-          : r
-      ))
+    const handleSeen = (payload: any) => {
+      console.log('🔴 SOCKET RECEIVED handleSeen', payload);
+      const { roomId, messageIds } = payload;
+      setMessages(prev => prev.map(m => {
+        if (messageIds && Array.isArray(messageIds) && messageIds.includes(m.id)) {
+          return { ...m, status: 'seen' as const };
+        }
+        if ((!messageIds || messageIds.length === 0) && (!roomId || m.roomId === roomId) && m.senderId === meRef.current?.id && m.status !== 'seen') {
+          return { ...m, status: 'seen' as const };
+        }
+        return m;
+      }))
+      setRooms(prev => prev.map(r => {
+        let changed = false;
+        const newMsgs = r.messages.map(m => {
+          if (messageIds && Array.isArray(messageIds) && messageIds.includes(m.id)) {
+            changed = true;
+            return { ...m, status: 'seen' as const };
+          }
+          if ((!messageIds || messageIds.length === 0) && (!roomId || r.id === roomId) && m.senderId === meRef.current?.id && m.status !== 'seen') {
+            changed = true;
+            return { ...m, status: 'seen' as const };
+          }
+          return m;
+        });
+        return changed ? { ...r, messages: newMsgs } : r;
+      }))
     }
 
     const handleTypingStart = ({ roomId, userName }: { roomId: string; userId: string; userName: string }) => {
@@ -1092,7 +1182,8 @@ export function HomePage() {
         {filtered.map(r => (
           <RoomItem key={r.id} room={r} myId={me?.id ?? ''}
             active={activeRoom?.id === r.id}
-            onClick={() => openRoom(r)} />
+            onClick={() => openRoom(r)}
+            unreadCount={unreadCounts[r.id] || 0} />
         ))}
       </div>
 
@@ -1367,6 +1458,17 @@ export function HomePage() {
                 </div>
               </div>
             )}
+
+            {showNewMsgPill && (
+              <div style={{
+                position: 'absolute', bottom: 90, left: '50%', transform: 'translateX(-50%)',
+                background: 'rgba(0,0,0,0.65)', color: '#fff', padding: '6px 16px', borderRadius: 20,
+                fontSize: '0.82rem', zIndex: 100, animation: 'fadeIn 0.3s, fadeOut 0.3s 2.2s forwards',
+                pointerEvents: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', fontWeight: 500
+              }}>
+                New message
+              </div>
+            )}
           </div>
 
           {/* input bar */}
@@ -1451,6 +1553,9 @@ export function HomePage() {
         @keyframes scaleIn {
           from { opacity: 0; transform: scale(0.95); }
           to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeOut {
+          to { opacity: 0; }
         }
       `}</style>
 
