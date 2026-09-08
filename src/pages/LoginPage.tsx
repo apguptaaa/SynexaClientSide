@@ -37,7 +37,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [backendReady, setBackendReady] = useState(false)
+  // const [backendReady, setBackendReady] = useState(false)
   const [checkingBackend, setCheckingBackend] = useState(true)
   useEffect(() => {
     let isMounted = true
@@ -46,7 +46,7 @@ export function LoginPage() {
       try {
         const res = await fetch('https://synexabackend.onrender.com/health')
         if (isMounted && res.ok) {
-          setBackendReady(true)
+          // setBackendReady(true)
           setCheckingBackend(false)
         } else {
           setTimeout(pingBackend, 3000)
