@@ -37,7 +37,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [backendReady, setBackendReady] = useState(false)
+  const [, setBackendReady] = useState(false)
   const [checkingBackend, setCheckingBackend] = useState(true)
   useEffect(() => {
     let isMounted = true
