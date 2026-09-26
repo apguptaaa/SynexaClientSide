@@ -116,12 +116,12 @@ export function CalendarModal({
   })
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center font-sans p-4 animate-[fadeIn_0.2s_ease-out]">
-      <div className="bg-white w-full max-w-[900px] h-[640px] max-h-[90vh] rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.35)] flex flex-col overflow-hidden border border-gray-100">
+    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center font-sans p-0 md:p-4 animate-[fadeIn_0.2s_ease-out]">
+      <div className="bg-white w-full h-full md:max-w-[900px] md:h-[640px] md:max-h-[90vh] md:rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.35)] flex flex-col overflow-hidden border-0 md:border border-gray-100">
         {/* Header */}
-        <div className="h-16 px-6 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
+        <div className="h-16 px-4 md:px-6 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#8c0817] to-[#b91c1c] text-white flex items-center justify-center font-bold text-sm shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#8c0817] to-[#b91c1c] text-white flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                 <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -129,22 +129,23 @@ export function CalendarModal({
                 <line x1="3" y1="10" x2="21" y2="10"></line>
               </svg>
             </div>
-            <div>
-              <h3 className="text-base font-bold text-[#1f2937] m-0 tracking-[-0.01em]">Calendar & Meetings</h3>
-              <p className="text-xs text-gray-400 font-medium m-0">Schedule calls, meet now, and review agendas</p>
+            <div className="min-w-0">
+              <h3 className="text-sm md:text-base font-bold text-[#1f2937] m-0 tracking-[-0.01em] truncate">Calendar & Meetings</h3>
+              <p className="text-[0.7rem] md:text-xs text-gray-400 font-medium m-0 truncate">Schedule calls & agendas</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <button
               onClick={() => setShowScheduleForm(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#8c0817] text-white text-xs font-bold border-none cursor-pointer hover:bg-red-800 transition-colors shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#8c0817] text-white text-xs font-bold border-none cursor-pointer hover:bg-red-800 transition-colors shadow-sm"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
-              Schedule Meeting
+              <span className="hidden sm:inline">Schedule Meeting</span>
+              <span className="sm:hidden">Schedule</span>
             </button>
             <button
               onClick={onClose}
@@ -159,9 +160,9 @@ export function CalendarModal({
         </div>
 
         {/* Content Area: Left Mini Calendar + Right Meetings List */}
-        <div className="flex flex-1 min-h-0 bg-[#f8f9fb]">
+        <div className="flex flex-col md:flex-row flex-1 min-h-0 bg-[#f8f9fb] overflow-y-auto md:overflow-hidden">
           {/* Left Mini Calendar */}
-          <div className="w-72 bg-white border-r border-gray-200/70 p-5 flex flex-col shrink-0">
+          <div className="w-full md:w-72 bg-white border-b md:border-b-0 md:border-r border-gray-200/70 p-4 md:p-5 flex flex-col shrink-0">
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-bold text-gray-800">
                 {today.toLocaleString('default', { month: 'long', year: 'numeric' })}

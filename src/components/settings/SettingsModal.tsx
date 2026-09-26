@@ -157,7 +157,7 @@ export function SettingsModal({
   return (
     <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center font-sans p-4 animate-[fadeIn_0.2s_ease-out]">
       {/* Teams-like Dialog Box */}
-      <div className="bg-white dark:bg-[#0f172a] w-full max-w-[860px] h-[640px] max-h-[90vh] rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.35)] flex flex-col overflow-hidden border border-gray-100 dark:border-slate-800">
+      <div className="bg-white dark:bg-[#0f172a] w-full max-w-[860px] h-full md:h-[640px] md:max-h-[90vh] md:rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.35)] flex flex-col overflow-hidden border-0 md:border border-gray-100 dark:border-slate-800">
         {/* Header */}
         <div className="h-14 px-6 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-[#0f172a] shrink-0">
           <div className="flex items-center gap-3">
@@ -181,16 +181,16 @@ export function SettingsModal({
         </div>
 
         {/* Main Body: Left Nav + Right Pane */}
-        <div className="flex flex-1 min-h-0">
-          {/* Left Teams Sidebar List */}
-          <div className="w-60 bg-[#f8f9fb] dark:bg-[#0b0f19] border-r border-gray-200/70 dark:border-slate-800 p-3 flex flex-col gap-1 overflow-y-auto shrink-0">
+        <div className="flex flex-col md:flex-row flex-1 min-h-0">
+          {/* Left Teams Sidebar List - horizontal scroll on mobile, vertical on desktop */}
+          <div className="md:w-60 bg-[#f8f9fb] dark:bg-[#0b0f19] border-b md:border-b-0 md:border-r border-gray-200/70 dark:border-slate-800 p-2 md:p-3 flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible md:overflow-y-auto shrink-0">
             {tabs.map((tab) => {
               const active = activeTab === tab.id
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl border-none text-left cursor-pointer transition-all duration-200 text-[0.88rem] font-semibold ${
+                  className={`flex items-center gap-2 md:gap-3 px-3 md:px-3.5 py-2 md:py-2.5 rounded-xl border-none text-left cursor-pointer transition-all duration-200 text-[0.82rem] md:text-[0.88rem] font-semibold whitespace-nowrap shrink-0 ${
                     active
                       ? 'bg-white dark:bg-slate-800 text-[#8c0817] dark:text-red-400 shadow-[0_2px_8px_rgba(140,8,23,0.08)] border border-red-100/60 dark:border-slate-700 font-bold'
                       : 'text-gray-600 dark:text-slate-300 bg-transparent hover:bg-gray-200/60 dark:hover:bg-slate-800/60 hover:text-gray-900 dark:hover:text-slate-100'
@@ -206,7 +206,7 @@ export function SettingsModal({
           </div>
 
           {/* Right Content Pane */}
-          <div className="flex-1 overflow-y-auto p-7 bg-white dark:bg-[#0f172a] text-gray-800 dark:text-slate-100">
+          <div className="flex-1 overflow-y-auto p-4 md:p-7 bg-white dark:bg-[#0f172a] text-gray-800 dark:text-slate-100">
             {/* GENERAL TAB */}
             {activeTab === 'general' && (
               <div className="space-y-7 animate-[fadeIn_0.2s_ease-out]">
