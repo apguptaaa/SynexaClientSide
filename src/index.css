@@ -1,13 +1,20 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 :root {
-  font-family: 'Inter', 'Segoe UI', sans-serif;
-  color: #f8fafc;
-  background: #020817;
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', 'Roboto', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #0f172a;
+  background-color: #fafbfc;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+:root.dark {
+  color: #f8fafc;
+  background-color: #090d16;
 }
 
 @layer base {

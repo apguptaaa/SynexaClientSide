@@ -1,9 +1,8 @@
 import React, { useState } from 'react'
-import { Button } from '../components/ui/Button'
-import { Input } from '../components/ui/Input'
+import { SynexaLogo } from '../components/common/SynexaLogo'
 
 const GoogleIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
@@ -12,28 +11,21 @@ const GoogleIcon = () => (
 )
 
 const MailIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
     <polyline points="22,6 12,13 2,6" />
   </svg>
 )
 
 const LockIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 11V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v4M12 15v2" />
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-  </svg>
-)
-
-const EyeIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-    <circle cx="12" cy="12" r="3" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
   </svg>
 )
 
 const UserIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
     <circle cx="12" cy="7" r="4" />
   </svg>
@@ -44,6 +36,7 @@ export function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -90,250 +83,253 @@ export function SignupPage() {
   }
 
   return (
-    <div className="h-screen w-full flex bg-white font-sans overflow-hidden">
-      {/* Left Panel */}
-      <div className="hidden lg:flex w-[55%] bg-[#991b1b] text-white relative overflow-hidden flex-col h-screen">
-        {/* Background Waves/Circles */}
-        <div className="absolute -bottom-[20%] -right-[10%] w-[800px] h-[800px] border-[50px] border-[#a51d1d] rounded-full"></div>
-        <div className="absolute -bottom-[10%] -right-[20%] w-[600px] h-[600px] border-[40px] border-[#b91c1c] rounded-full"></div>
+    <div className="min-h-screen w-full flex bg-[#f8f9fc] font-sans">
+      {/* Left Brand Panel (Desktop only) */}
+      <div className="hidden lg:flex w-[50%] xl:w-[52%] bg-gradient-to-br from-[#8c0817] via-[#a31222] to-[#680410] text-white relative overflow-hidden flex-col justify-between p-12 select-none">
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-red-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-black/30 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div className="px-12 py-8 relative z-10 flex-col h-full flex justify-center overflow-hidden">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="bg-white p-2 rounded-lg flex items-center justify-center shadow-sm">
-              <img src="/assets/logos/synexa-logo.svg" alt="Synexa" width={22} height={22} className="mix-blend-multiply opacity-90" />
-            </div>
-            <span className="text-[1.6rem] font-extrabold tracking-tight">Synexa</span>
+        {/* Top Brand Tag */}
+        <div className="relative z-10 flex items-center gap-3.5">
+          <div className="flex items-center justify-center">
+            <SynexaLogo size={44} variant="white" />
+          </div>
+          <span className="text-2xl font-bold tracking-tight text-white">Synexa</span>
+        </div>
+
+        {/* Center Hero Content */}
+        <div className="relative z-10 max-w-lg my-auto py-8">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[0.72rem] font-bold tracking-wider uppercase mb-5 text-red-100">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            Join thousands of teams
           </div>
 
-          <div className="inline-flex items-center gap-2.5 px-3 py-1.5 border border-white/20 rounded-full text-[0.65rem] font-bold tracking-widest mb-4 bg-white/5 backdrop-blur-sm self-start">
-            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.8)]"></span>
-            CONNECTED IN REAL TIME
-          </div>
-
-          <h1 className="text-[clamp(2.5rem,4vw,4rem)] font-black leading-[1.05] tracking-tight mb-3 drop-shadow-sm">
-            Make work feel<br />more human.
+          <h1 className="text-4xl xl:text-5xl font-bold leading-[1.12] tracking-[-0.02em] text-white mb-4">
+            Build your team workspace in seconds.
           </h1>
 
-          <p className="text-red-100/90 text-[1rem] max-w-[26rem] font-medium leading-relaxed mb-4">
-            One shared space for the conversations, decisions, and files that move your team forward.
+          <p className="text-red-100/80 text-sm xl:text-base font-normal leading-relaxed mb-8 max-w-md">
+            Direct messaging, channels, video meetings, and encrypted file sharing all in one seamless application.
           </p>
 
-          {/* Scaled-down Animated Engineering Chat Mockup */}
-          <div className="relative w-full max-w-[360px] z-20 flex-shrink min-h-0">
-            <div className="bg-white rounded-[1.25rem] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.4)] flex flex-col overflow-hidden">
-              {/* Header */}
-              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-white z-10">
-                <div className="flex flex-col">
-                  <span className="font-extrabold text-slate-800 flex items-center gap-1.5 text-[0.95rem]">
-                    <span className="text-slate-400 font-medium">#</span> engineering
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-semibold mt-0.5">3 online · 1 away</span>
-                </div>
-                <div className="flex -space-x-1.5">
-                  <div className="w-7 h-7 rounded-full bg-pink-500 border-2 border-white text-[9px] text-white flex items-center justify-center font-bold z-40 shadow-sm relative">
-                    MC
-                    <div className="absolute -bottom-0.5 -right-0.5 w-[10px] h-[10px] bg-emerald-400 border-2 border-white rounded-full"></div>
-                  </div>
-                  <div className="w-7 h-7 rounded-full bg-amber-500 border-2 border-white text-[9px] text-white flex items-center justify-center font-bold z-30 shadow-sm relative">
-                    DP
-                    <div className="absolute -bottom-0.5 -right-0.5 w-[10px] h-[10px] bg-emerald-400 border-2 border-white rounded-full"></div>
-                  </div>
-                  <div className="w-7 h-7 rounded-full bg-sky-500 border-2 border-white text-[9px] text-white flex items-center justify-center font-bold z-20 shadow-sm relative">
-                    SK
-                    <div className="absolute -bottom-0.5 -right-0.5 w-[10px] h-[10px] bg-amber-400 border-2 border-white rounded-full"></div>
-                  </div>
-                  <div className="w-7 h-7 rounded-full bg-indigo-500 border-2 border-white text-[9px] text-white flex items-center justify-center font-bold z-10 shadow-sm relative">
-                    LN
-                    <div className="absolute -bottom-0.5 -right-0.5 w-[10px] h-[10px] bg-slate-300 border-2 border-white rounded-full"></div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Chat Body */}
-              <div className="p-4 space-y-5 bg-slate-50/50">
-                {/* Maya Chen Message */}
-                <div className="flex gap-3">
-                  <div className="relative shrink-0 mt-0.5">
-                    <div className="w-8 h-8 rounded-full bg-pink-500 text-white flex items-center justify-center font-bold text-[11px] shadow-sm">MC</div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2 mb-1.5">
-                      <span className="font-bold text-slate-900 text-[0.85rem]">Maya Chen</span>
-                      <span className="text-[10px] text-slate-400 font-semibold">09:42</span>
-                    </div>
-
-                    {/* PDF Attachment */}
-                    <div className="mt-1 flex items-start gap-3 p-3 border border-slate-200 rounded-[14px] rounded-tl-sm bg-white shadow-sm max-w-[260px]">
-                      <div className="bg-[#8c0817] px-2.5 py-2 rounded-xl text-white font-black text-[10px] h-9 flex items-center justify-center shrink-0 shadow-sm">
-                        PDF
-                      </div>
-                      <div className="overflow-hidden flex-1">
-                        <div className="font-bold text-[0.8rem] truncate text-slate-800">load-test-results.pdf</div>
-                        <div className="text-[10px] text-slate-500 font-semibold mt-0.5">2.4 MB • Uploaded</div>
-                        <div className="w-full bg-slate-100 h-1 rounded-full mt-2 overflow-hidden flex">
-                          <div className="bg-gradient-to-r from-emerald-400 to-emerald-500 h-full w-[100%] rounded-full shadow-sm"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Dev Patel Message */}
-                <div className="flex gap-3">
-                  <div className="relative shrink-0 mt-0.5">
-                    <div className="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-[11px] shadow-sm">DP</div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2 mb-1.5">
-                      <span className="font-bold text-slate-900 text-[0.85rem]">Dev Patel</span>
-                      <span className="text-[10px] text-slate-400 font-semibold">09:43</span>
-                    </div>
-                    <div className="bg-slate-100 text-slate-700 px-3.5 py-2.5 rounded-[14px] rounded-tl-sm text-[0.8rem] font-medium leading-relaxed shadow-sm border border-slate-200/60 max-w-[95%]">
-                      JWT refresh rotation is merged too — tokens expire in 15m, refresh in 7d.
-                    </div>
-                  </div>
-                </div>
-
-                {/* SK Typing indicator */}
-                <div className="flex gap-3 items-end">
-                  <div className="relative shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-sky-500 text-white flex items-center justify-center font-bold text-[11px] shadow-sm">SK</div>
-                  </div>
-                  <div className="bg-slate-100 border border-slate-200 rounded-[14px] rounded-tl-sm px-3.5 shadow-sm flex items-center h-[2.5rem]">
-                    <div className="flex gap-[4px] items-center">
-                      <span className="typing-dot bg-slate-400 w-1.5 h-1.5"></span>
-                      <span className="typing-dot bg-slate-400 w-1.5 h-1.5"></span>
-                      <span className="typing-dot bg-slate-400 w-1.5 h-1.5"></span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer Input */}
-              <div className="px-4 py-3 bg-white border-t border-slate-100 z-10">
-                <div className="bg-slate-50 border border-slate-200 rounded-full pl-3 pr-1 py-1 flex items-center justify-between hover:border-slate-300 transition-all cursor-text shadow-sm inset-shadow-sm">
-                  <div className="flex items-center gap-2 text-slate-400 w-full">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
-                    <span className="text-[0.8rem] font-medium">Message #engineering...</span>
-                  </div>
-                  <div className="w-7 h-7 bg-blue-500 hover:bg-blue-600 cursor-pointer rounded-full flex items-center justify-center text-white shrink-0 shadow-sm transition-colors">
-                    <span className="transform -rotate-90">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5" /><path d="M5 12l7-7 7 7" /></svg>
-                    </span>
-                  </div>
-                </div>
-              </div>
+          {/* Feature highlights */}
+          <div className="grid grid-cols-2 gap-3 max-w-sm">
+            <div className="p-3.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/15">
+              <div className="text-white font-bold text-xs mb-0.5">End-to-End Encrypted</div>
+              <div className="text-red-200 text-[0.72rem]">256-bit AES protection</div>
+            </div>
+            <div className="p-3.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/15">
+              <div className="text-white font-bold text-xs mb-0.5">HD Audio & Video</div>
+              <div className="text-red-200 text-[0.72rem]">Zero-latency calling</div>
             </div>
           </div>
         </div>
+
+        {/* Bottom Security Footer */}
+        <div className="relative z-10 flex items-center gap-2 text-xs text-red-200/80 font-medium">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          Enterprise Grade Compliance & Encryption
+        </div>
       </div>
 
-      {/* Right Panel Form */}
-      <div className="w-full lg:w-[45%] h-full flex flex-col items-center justify-center p-6 sm:p-8 lg:p-12 relative bg-white overflow-hidden">
-        <div className="w-full max-w-[400px]">
-          <h2 className="text-[1.6rem] sm:text-[2rem] font-bold text-slate-900 tracking-tight mb-1">
-            Create an account
-          </h2>
-          <p className="text-slate-500 text-[0.9rem] mb-4 sm:mb-5 font-medium">
-            Already have an account? <a href="/login" className="text-red-700 font-bold hover:text-red-800 transition-colors">Log in here</a>
-          </p>
+      {/* Right Signup Form Panel */}
+      <div className="w-full lg:w-[50%] xl:w-[48%] min-h-screen flex flex-col justify-between p-6 sm:p-10 lg:p-16 overflow-y-auto bg-white">
+        {/* Mobile Header with 3D Logo */}
+        <div className="flex lg:hidden items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center">
+              <SynexaLogo size={40} variant="color" />
+            </div>
+            <span className="text-xl font-bold text-gray-900 tracking-tight">Synexa</span>
+          </div>
+          <a
+            href="/login"
+            className="text-xs font-bold text-[#8c0817] hover:text-red-900 transition-colors"
+          >
+            Sign in →
+          </a>
+        </div>
 
-          <button className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-800 font-bold text-[0.9rem] hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm mb-4 sm:mb-5" type="button">
+        {/* Center Form Card */}
+        <div className="w-full max-w-[420px] mx-auto my-auto py-4">
+          <div className="hidden lg:flex items-center gap-3 mb-8">
+            <div className="flex items-center justify-center">
+              <SynexaLogo size={48} variant="color" />
+            </div>
+            <div>
+              <div className="text-lg font-bold text-gray-900 leading-tight">Create Workspace Account</div>
+              <div className="text-xs text-gray-400 font-medium">Free for teams of any size</div>
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-[-0.01em] m-0 mb-1.5">
+              Get started with Synexa
+            </h2>
+            <p className="text-sm text-gray-500 font-medium m-0">
+              Already have an account?{' '}
+              <a href="/login" className="text-[#8c0817] font-bold hover:text-red-900 transition-colors">
+                Sign in
+              </a>
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs sm:text-sm cursor-pointer transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:border-gray-300"
+          >
             <GoogleIcon />
-            Sign up with Google
+            Continue with Google
           </button>
 
-          <div className="flex items-center gap-4 mb-4 sm:mb-5">
-            <hr className="flex-1 border-slate-100" />
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-              OR CONTINUE WITH EMAIL
+          <div className="flex items-center gap-3 my-6">
+            <div className="flex-1 h-px bg-gray-200"></div>
+            <span className="text-[0.68rem] font-bold text-gray-400 tracking-wider uppercase">
+              Or register with email
             </span>
-            <hr className="flex-1 border-slate-100" />
+            <div className="flex-1 h-px bg-gray-200"></div>
           </div>
 
-          <form onSubmit={handleRegister} className="grid gap-3">
-            {error && (
-              <div className="bg-red-50 text-red-700 border border-red-200 px-4 py-3 rounded-lg text-[0.85rem] font-semibold w-full text-center">
-                {error}
+          {error && (
+            <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="shrink-0 text-red-600">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleRegister} className="space-y-4">
+            {/* Full Name */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                Full Name
+              </label>
+              <div className="relative flex items-center">
+                <div className="absolute left-3.5 flex items-center pointer-events-none">
+                  <UserIcon />
+                </div>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Alex Morgan"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#8c0817] focus:ring-4 focus:ring-red-50 transition-all bg-[#fafbfc]"
+                />
               </div>
-            )}
-
-            <Input
-              label="Full name"
-              type="text"
-              placeholder="John Doe"
-              name="name"
-              iconLeft={<UserIcon />}
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-
-            <Input
-              label="Work email"
-              type="email"
-              placeholder="you@company.com"
-              name="email"
-              iconLeft={<MailIcon />}
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-
-            <div className="relative">
-              <Input
-                label="Password"
-                type="password"
-                placeholder="Create a password"
-                name="password"
-                iconLeft={<LockIcon />}
-                iconRight={<button type="button" className="hover:text-slate-600 transition-colors cursor-pointer outline-none"><EyeIcon /></button>}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
             </div>
 
-            <Input
-              label="Confirm password"
-              type="password"
-              placeholder="Repeat password"
-              name="confirmPassword"
-              iconLeft={<LockIcon />}
-              required
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
-
-            <label className="flex items-center gap-2.5 cursor-pointer group">
-              <div className="w-[1rem] h-[1rem] rounded-[3px] border-2 border-slate-300 flex items-center justify-center bg-transparent group-hover:border-red-600 transition-colors shrink-0">
-                <div className="w-1.5 h-1.5 bg-slate-800 rounded-[2px]" />
+            {/* Email */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                Work Email
+              </label>
+              <div className="relative flex items-center">
+                <div className="absolute left-3.5 flex items-center pointer-events-none">
+                  <MailIcon />
+                </div>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@company.com"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#8c0817] focus:ring-4 focus:ring-red-50 transition-all bg-[#fafbfc]"
+                />
               </div>
-              <span className="text-[0.8rem] text-slate-600 font-medium select-none group-hover:text-slate-900 transition-colors">
-                I agree to the <a href="#" className="font-bold text-slate-800 hover:text-red-700">Terms</a> and <a href="#" className="font-bold text-slate-800 hover:text-red-700">Privacy Policy</a>
-              </span>
-            </label>
+            </div>
 
-            <Button
-              variant="primary"
-              className="w-full !bg-[#8c0817] hover:!bg-[#7a0613] py-3 shadow-[0_8px_20px_-6px_rgba(140,8,23,0.4)] border-none text-[0.95rem] flex items-center justify-center gap-2 group transition-all"
+            {/* Password */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                Password
+              </label>
+              <div className="relative flex items-center">
+                <div className="absolute left-3.5 flex items-center pointer-events-none">
+                  <LockIcon />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Create strong password"
+                  className="w-full pl-10 pr-11 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#8c0817] focus:ring-4 focus:ring-red-50 transition-all bg-[#fafbfc]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 text-gray-400 hover:text-gray-600 cursor-pointer border-none bg-transparent p-0 flex items-center justify-center transition-colors"
+                >
+                  {showPassword ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                Confirm Password
+              </label>
+              <div className="relative flex items-center">
+                <div className="absolute left-3.5 flex items-center pointer-events-none">
+                  <LockIcon />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter password"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#8c0817] focus:ring-4 focus:ring-red-50 transition-all bg-[#fafbfc]"
+                />
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <button
               type="submit"
               disabled={loading}
+              className="w-full py-3.5 rounded-xl border-none bg-gradient-to-r from-[#8c0817] to-[#b91c1c] text-white font-bold text-sm cursor-pointer shadow-[0_6px_20px_rgba(140,8,23,0.35)] hover:shadow-[0_8px_24px_rgba(140,8,23,0.45)] hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
             >
-              {loading ? 'Creating account...' : 'Sign up for Synexa'}
-              {!loading && <span className="group-hover:translate-x-1 transition-transform">→</span>}
-            </Button>
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></span>
+                  <span>Creating Account…</span>
+                </>
+              ) : (
+                <>
+                  <span>Create Synexa Account</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </>
+              )}
+            </button>
           </form>
+        </div>
 
-          <div className="flex justify-center mt-4 sm:mt-5">
-            <span className="text-[0.7rem] text-slate-400 flex items-center gap-1.5 font-semibold bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100 uppercase tracking-wider">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v4M12 15v2" /><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /></svg>
-              Protected with JWT authentication
-            </span>
-          </div>
+        <div className="mt-8 text-center text-xs text-gray-400 font-medium">
+          By signing up, you agree to Synexa's Terms of Service & Privacy Policy.
         </div>
       </div>
-
     </div>
   )
 }
