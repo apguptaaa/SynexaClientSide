@@ -29,6 +29,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
   const [checkingBackend, setCheckingBackend] = useState(true)
 
@@ -86,6 +87,75 @@ export function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleGoogleLogin = () => {
+    setError('')
+    setGoogleLoading(true)
+
+    const google = (window as any).google
+    if (!google?.accounts?.id) {
+      setError('Google Sign-In is still loading. Please try again.')
+      setGoogleLoading(false)
+      return
+    }
+
+    google.accounts.id.initialize({
+      client_id: '644066194449-mj91v7cjpl8d8rtsfstuvdt4rrjl068t.apps.googleusercontent.com',
+      callback: async (response: any) => {
+        try {
+          const res = await fetch('https://synexabackend.onrender.com/api/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken: response.credential })
+          })
+
+          const data = await res.json()
+
+          if (!res.ok) {
+            throw new Error(data.message || 'Google login failed')
+          }
+
+          localStorage.setItem('accessToken', data.accessToken)
+          if (data.refreshToken) {
+            localStorage.setItem('refreshToken', data.refreshToken)
+          }
+
+          window.location.href = '/home'
+        } catch (err: unknown) {
+          if (err instanceof Error) {
+            setError(err.message || 'Google login failed')
+          } else {
+            setError('Google login failed')
+          }
+        } finally {
+          setGoogleLoading(false)
+        }
+      }
+    })
+
+    google.accounts.id.prompt((notification: any) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        // One Tap not available, fall back to button-style popup
+        google.accounts.id.renderButton(
+          document.createElement('div'),
+          { type: 'standard' }
+        )
+        // Use the popup flow instead
+        google.accounts.oauth2.initTokenRequest // not needed, use prompt
+        // Trigger the sign-in popup manually
+        const popupDiv = document.getElementById('google-signin-popup')
+        if (popupDiv) {
+          google.accounts.id.renderButton(popupDiv, {
+            theme: 'outline',
+            size: 'large',
+            width: '100%'
+          })
+          popupDiv.querySelector('div[role="button"]')?.click()
+        }
+        setGoogleLoading(false)
+      }
+    })
   }
 
   // Backend Health / Loading Screen with new 3D logo
@@ -221,11 +291,23 @@ export function LoginPage() {
           {/* Google Sign-in */}
           <button
             type="button"
-            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs sm:text-sm cursor-pointer transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:border-gray-300"
+            onClick={handleGoogleLogin}
+            disabled={googleLoading}
+            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs sm:text-sm cursor-pointer transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <GoogleIcon />
-            Continue with Google
+            {googleLoading ? (
+              <>
+                <span className="w-4 h-4 rounded-full border-2 border-gray-300 border-t-gray-600 animate-spin"></span>
+                <span>Signing in with Google…</span>
+              </>
+            ) : (
+              <>
+                <GoogleIcon />
+                Continue with Google
+              </>
+            )}
           </button>
+          <div id="google-signin-popup" className="hidden"></div>
 
           {/* Divider */}
           <div className="flex items-center gap-3 my-6">
