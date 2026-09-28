@@ -32,11 +32,7 @@ export function LoginPage() {
 
     const pingBackend = async () => {
       try {
-<<<<<<< HEAD
-        const res = await fetch('https://synexabackend.onrender.com/health')
-=======
         const res = await fetch(`${BACKEND_URL}/health`)
->>>>>>> c01430c2f22be63fef534046970c075ab3886c45
         if (isMounted && res.ok) {
           setCheckingBackend(false)
         } else {
@@ -90,29 +86,6 @@ export function LoginPage() {
   useEffect(() => {
     if (checkingBackend) return
 
-<<<<<<< HEAD
-    const google = (window as any).google
-    if (!google?.accounts?.id) {
-      setError('Google Sign-In is still loading. Please try again.')
-      setGoogleLoading(false)
-      return
-    }
-
-    google.accounts.id.initialize({
-      client_id: '644066194449-mj91v7cjpl8d8rtsfstuvdt4rrjl068t.apps.googleusercontent.com',
-      callback: async (response: any) => {
-        try {
-          const res = await fetch('https://synexabackend.onrender.com/api/auth/google', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken: response.credential })
-          })
-
-          const data = await res.json()
-
-          if (!res.ok) {
-            throw new Error(data.message || 'Google login failed')
-=======
     let timer: any
     const initGoogle = () => {
       const google = (window as any).google
@@ -159,52 +132,10 @@ export function LoginPage() {
             }
           } finally {
             setGoogleLoading(false)
->>>>>>> c01430c2f22be63fef534046970c075ab3886c45
           }
-
-          localStorage.setItem('accessToken', data.accessToken)
-          if (data.refreshToken) {
-            localStorage.setItem('refreshToken', data.refreshToken)
-          }
-
-          window.location.href = '/home'
-        } catch (err: unknown) {
-          if (err instanceof Error) {
-            setError(err.message || 'Google login failed')
-          } else {
-            setError('Google login failed')
-          }
-        } finally {
-          setGoogleLoading(false)
         }
-      }
-    })
+      })
 
-<<<<<<< HEAD
-    google.accounts.id.prompt((notification: any) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        // One Tap not available, fall back to button-style popup
-        google.accounts.id.renderButton(
-          document.createElement('div'),
-          { type: 'standard' }
-        )
-        // Use the popup flow instead
-        google.accounts.oauth2.initTokenRequest // not needed, use prompt
-        // Trigger the sign-in popup manually
-        const popupDiv = document.getElementById('google-signin-popup')
-        if (popupDiv) {
-          google.accounts.id.renderButton(popupDiv, {
-            theme: 'outline',
-            size: 'large',
-            width: '100%'
-          })
-          (popupDiv.querySelector('div[role="button"]') as HTMLElement | null)?.click()
-        }
-        setGoogleLoading(false)
-      }
-    })
-  }
-=======
       const container = document.getElementById('google-login-btn')
       if (container) {
         container.innerHTML = ''
@@ -223,7 +154,6 @@ export function LoginPage() {
     initGoogle()
     return () => clearTimeout(timer)
   }, [checkingBackend])
->>>>>>> c01430c2f22be63fef534046970c075ab3886c45
 
   // Backend Health / Loading Screen with new 3D logo
   if (checkingBackend) {

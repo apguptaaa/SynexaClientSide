@@ -31,28 +31,6 @@ function renderTextWithLinks(text: string, isSelf: boolean) {
   })
 }
 
-function getFileInfo(fileUrl: string, fileType: string | null) {
-  const rawName = decodeURIComponent(fileUrl.split('/').pop()?.split('?')[0] ?? '')
-  // Strip UUID prefix like "abc123-originalname.pdf" → "originalname.pdf"
-  const cleanName = rawName.replace(/^[a-f0-9]{8,}-/i, '')
-  const ext = cleanName.split('.').pop()?.toLowerCase() ?? ''
-  
-  let label = ext.toUpperCase() || 'FILE'
-  let color = '#3b82f6'
-  let bg = '#eff6ff'
-  
-  if (['pdf'].includes(ext)) { color = '#dc2626'; bg = '#fef2f2'; label = 'PDF' }
-  else if (['doc', 'docx'].includes(ext)) { color = '#2563eb'; bg = '#eff6ff'; label = 'DOC' }
-  else if (['xls', 'xlsx'].includes(ext)) { color = '#16a34a'; bg = '#f0fdf4'; label = 'XLS' }
-  else if (['ppt', 'pptx'].includes(ext)) { color = '#ea580c'; bg = '#fff7ed'; label = 'PPT' }
-  else if (['zip', 'rar', '7z'].includes(ext)) { color = '#7c3aed'; bg = '#f5f3ff'; label = 'ZIP' }
-  else if (['txt', 'csv'].includes(ext)) { color = '#475569'; bg = '#f8fafc'; label = ext.toUpperCase() }
-  else if (fileType?.startsWith('image/')) { color = '#8b5cf6'; bg = '#f5f3ff'; label = 'IMG' }
-  else if (fileType?.startsWith('video/')) { color = '#0891b2'; bg = '#ecfeff'; label = 'VID' }
-  
-  return { cleanName: cleanName || 'document', ext, label, color, bg }
-}
-
 export function Bubble({ msg, isSelf, showSender, isLast }: { msg: Message; isSelf: boolean; showSender: boolean; showTail?: boolean; isLast: boolean }) {
   const isImg = msg.fileType?.startsWith('image/')
   const isLocation = msg.fileType === 'location' || (msg.fileUrl && msg.fileUrl.includes('maps.google.com')) || (msg.text && (msg.text.includes('maps.google.com') || msg.text.includes('google.com/maps')))
@@ -119,89 +97,18 @@ export function Bubble({ msg, isSelf, showSender, isLast }: { msg: Message; isSe
         ) : msg.fileUrl ? (
           <div className={`shrink-0 ${msg.text ? 'mb-2' : ''}`}>
             {isImg ? (
-              <div className="relative group cursor-pointer" onClick={() => window.open(msg.fileUrl!, '_blank')}>
-                <img src={msg.fileUrl} alt="attachment" className="max-w-full max-h-[260px] rounded-xl block shadow-md" />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-xl transition-colors flex items-center justify-center">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-2 shadow">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                      <polyline points="15 3 21 3 21 9" />
-                      <line x1="10" y1="14" x2="21" y2="3" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            ) : (() => {
-              const { cleanName, label, color, bg } = getFileInfo(msg.fileUrl!, msg.fileType)
-              return (
-                <div className={`flex items-center gap-3 p-3 rounded-2xl min-w-[220px] max-w-[300px] ${
-                  isSelf 
-                    ? 'bg-white/15 border border-white/20' 
-                    : 'bg-white dark:bg-slate-700/80 border border-gray-100 dark:border-slate-600/60'
-                } shadow-sm`}>
-                  {/* File type badge */}
-                  <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 font-black text-[0.65rem] tracking-wider shadow-sm"
-                    style={{ background: isSelf ? 'rgba(255,255,255,0.25)' : bg, color: isSelf ? 'white' : color }}
-                  >
-                    {label}
-                  </div>
-                  {/* File info */}
-                  <div className="flex-1 min-w-0">
-                    <div className={`text-[0.82rem] font-bold truncate leading-tight ${
-                      isSelf ? 'text-white' : 'text-gray-800 dark:text-slate-100'
-                    }`}>
-                      {cleanName}
-                    </div>
-                    <div className={`text-[0.7rem] font-medium mt-0.5 ${
-                      isSelf ? 'text-red-100/80' : 'text-gray-400 dark:text-slate-400'
-                    }`}>
-                      {label} Document
-                    </div>
-                  </div>
-                  {/* Action buttons */}
-                  <div className="flex flex-col gap-1.5 shrink-0">
-                    {/* Open */}
-                    <a
-                      href={msg.fileUrl!}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Open"
-                      className={`w-8 h-8 rounded-full flex items-center justify-center no-underline transition-all ${
-                        isSelf
-                          ? 'bg-white/20 hover:bg-white/35 text-white'
-                          : 'bg-gray-100 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-slate-500 text-gray-600 dark:text-slate-200'
-                      }`}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                        <polyline points="15 3 21 3 21 9" />
-                        <line x1="10" y1="14" x2="21" y2="3" />
-                      </svg>
-                    </a>
-                    {/* Download */}
-                    <a
-                      href={msg.fileUrl!}
-                      download={cleanName}
-                      title="Download"
-                      className={`w-8 h-8 rounded-full flex items-center justify-center no-underline transition-all ${
-                        isSelf
-                          ? 'bg-white/20 hover:bg-white/35 text-white'
-                          : 'bg-gray-100 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-slate-500 text-gray-600 dark:text-slate-200'
-                      }`}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                      </svg>
-                    </a>
-                  </div>
-                </div>
-              )
-            })()}
+              <img src={msg.fileUrl} alt="attachment" className="max-w-full max-h-[220px] rounded-lg block cursor-pointer" onClick={() => window.open(msg.fileUrl!, '_blank')} />
+            ) : (
+              <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-3 py-2.5 rounded-lg no-underline text-[0.85rem] font-semibold max-w-[280px] overflow-hidden ${isSelf ? 'bg-black/10 text-white' : 'bg-black/5 text-[#8c0817]'}`}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+                <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+                  {msg.fileUrl.split('/').pop()}
+                </span>
+              </a>
+            )}
           </div>
         ) : null}
 
