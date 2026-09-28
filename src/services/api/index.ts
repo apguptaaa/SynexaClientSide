@@ -1,4 +1,6 @@
-const BASE_URL = 'https://synexabackend.onrender.com'
+import { BACKEND_URL } from '../../constants/config'
+
+const BASE_URL = BACKEND_URL
 
 function getToken(): string {
   return localStorage.getItem('accessToken') ?? ''
