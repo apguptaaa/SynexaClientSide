@@ -3,6 +3,9 @@ export interface User {
   name: string
   email: string
   avatarUrl: string | null
+  phone?: string | null
+  phoneNumber?: string | null
+  bio?: string | null
   isOnline?: boolean
   lastSeenAt?: string | null
   provider?: string

@@ -10,6 +10,72 @@ import { Bubble } from './Bubble'
 import { CallOverlay } from '../calls/CallOverlay'
 import { seedColor, fmtTime, fmtDateLabel } from '../../utils/chatHelpers'
 
+function AttachmentPreview({
+  file,
+  onRemove
+}: {
+  file: { file: File; name: string; size: number; type: string }
+  onRemove?: () => void
+}) {
+  const isImg = file.type.startsWith('image/') || file.type.startsWith('video/')
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (!isImg) return
+    const url = URL.createObjectURL(file.file)
+    setPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file.file, isImg])
+
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+  const getTypeInfo = () => {
+    if (file.type.includes('pdf') || ext === 'pdf') return { label: 'PDF', color: '#dc2626', bg: '#fef2f2' }
+    if (['doc', 'docx'].includes(ext)) return { label: 'DOC', color: '#2563eb', bg: '#eff6ff' }
+    if (['xls', 'xlsx'].includes(ext)) return { label: 'XLS', color: '#16a34a', bg: '#f0fdf4' }
+    if (['ppt', 'pptx'].includes(ext)) return { label: 'PPT', color: '#ea580c', bg: '#fff7ed' }
+    if (['zip', 'rar', '7z'].includes(ext)) return { label: 'ZIP', color: '#7c3aed', bg: '#f5f3ff' }
+    return { label: ext.toUpperCase() || 'DOC', color: '#3b82f6', bg: '#eff6ff' }
+  }
+  const typeInfo = getTypeInfo()
+
+  return (
+    <div className="mx-3 md:mx-6 mb-2 px-3 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-md flex items-center gap-3 animate-scale-in">
+      {isImg && previewUrl ? (
+        <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 shadow-sm border border-gray-100 dark:border-slate-600">
+          <img src={previewUrl} alt="preview" className="w-full h-full object-cover" />
+        </div>
+      ) : (
+        <div
+          className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 font-black text-[0.65rem] tracking-wider shadow-sm"
+          style={{ background: typeInfo.bg, color: typeInfo.color }}
+        >
+          {typeInfo.label}
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="text-[0.85rem] font-bold text-gray-800 dark:text-slate-100 truncate">
+          {file.name}
+        </div>
+        <div className="text-[0.72rem] text-gray-500 dark:text-slate-400 font-medium mt-0.5">
+          {file.size > 1024 * 1024
+            ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+            : `${(file.size / 1024).toFixed(1)} KB`} &bull; Ready to send
+        </div>
+      </div>
+      <button
+        onClick={onRemove}
+        className="w-7 h-7 rounded-full bg-gray-100 dark:bg-slate-700 hover:bg-red-50 dark:hover:bg-red-950/40 text-gray-500 hover:text-red-600 dark:hover:text-red-400 flex items-center justify-center border-none cursor-pointer transition-colors shrink-0"
+        title="Remove attachment"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  )
+}
+
 // Move to helpers if preferred
 function groupByDate(msgs: Message[]) {
   const g: { date: string; msgs: Message[] }[] = []
@@ -58,7 +124,9 @@ export function ChatArea({
   handleKey,
   sendError,
   sending,
-  send
+  send,
+  attachedFile,
+  onRemoveAttachment
 }: {
   activeRoom: Room | null
   me: User | null
@@ -68,7 +136,7 @@ export function ChatArea({
   curOther: User | undefined
   menuOpen: boolean
   setMenuOpen: (o: boolean) => void
-  setShowContactProfile: (o: boolean) => void
+  setShowContactProfile: (s: boolean) => void
   feedRef: React.RefObject<HTMLDivElement | null>
   handleScroll: () => void
   loadingMore: boolean
@@ -96,6 +164,8 @@ export function ChatArea({
   sendError: string | null
   sending: boolean
   send: (url?: string, type?: string) => void
+  attachedFile?: { file: File; name: string; size: number; type: string } | null
+  onRemoveAttachment?: () => void
 }) {
   const [wallpaper, setWallpaper] = React.useState<string | null>(
     localStorage.getItem('chat_wallpaper')
@@ -356,6 +426,59 @@ export function ChatArea({
               </div>
             )}
           </div>
+          {/* Attached File Preview Pill */}
+          {attachedFile && (() => {
+            const isImgAttach = attachedFile.type.startsWith('image/') || attachedFile.type.startsWith('video/')
+            const ext = attachedFile.name.split('.').pop()?.toUpperCase() ?? 'FILE'
+            const previewUrl = isImgAttach ? URL.createObjectURL(attachedFile.file) : null
+            const getTypeInfo = () => {
+              const e = attachedFile.name.split('.').pop()?.toLowerCase() ?? ''
+              if (attachedFile.type.includes('pdf') || e === 'pdf') return { label: 'PDF', color: '#dc2626', bg: '#fef2f2' }
+              if (['doc', 'docx'].includes(e)) return { label: 'DOC', color: '#2563eb', bg: '#eff6ff' }
+              if (['xls', 'xlsx'].includes(e)) return { label: 'XLS', color: '#16a34a', bg: '#f0fdf4' }
+              if (['ppt', 'pptx'].includes(e)) return { label: 'PPT', color: '#ea580c', bg: '#fff7ed' }
+              if (['zip', 'rar'].includes(e)) return { label: 'ZIP', color: '#7c3aed', bg: '#f5f3ff' }
+              return { label: ext || 'DOC', color: '#3b82f6', bg: '#eff6ff' }
+            }
+            const typeInfo = getTypeInfo()
+            return (
+              <div className="mx-3 md:mx-6 mb-2 px-3 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-md flex items-center gap-3 animate-scale-in">
+                {/* Preview / Badge */}
+                {isImgAttach && previewUrl ? (
+                  <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 shadow-sm border border-gray-100 dark:border-slate-600">
+                    <img src={previewUrl} alt="preview" className="w-full h-full object-cover" onLoad={() => URL.revokeObjectURL(previewUrl)} />
+                  </div>
+                ) : (
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 font-black text-[0.65rem] tracking-wider shadow-sm"
+                    style={{ background: typeInfo.bg, color: typeInfo.color }}
+                  >
+                    {typeInfo.label}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="text-[0.85rem] font-bold text-gray-800 dark:text-slate-100 truncate">
+                    {attachedFile.name}
+                  </div>
+                  <div className="text-[0.72rem] text-gray-500 dark:text-slate-400 font-medium mt-0.5">
+                    {attachedFile.size > 1024 * 1024
+                      ? `${(attachedFile.size / (1024 * 1024)).toFixed(1)} MB`
+                      : `${(attachedFile.size / 1024).toFixed(1)} KB`} &bull; Ready to send
+                  </div>
+                </div>
+                <button
+                  onClick={onRemoveAttachment}
+                  className="w-7 h-7 rounded-full bg-gray-100 dark:bg-slate-700 hover:bg-red-50 dark:hover:bg-red-950/40 text-gray-500 hover:text-red-600 dark:hover:text-red-400 flex items-center justify-center border-none cursor-pointer transition-colors shrink-0"
+                  title="Remove attachment"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            )
+          })()}
 
           {/* input bar */}
           <div className="relative shrink-0 flex items-end gap-2 md:gap-3 px-3 md:px-6 py-3 md:py-4 bg-[#fafbfc] dark:bg-[#0f172a] border-t border-gray-200 dark:border-slate-800 shadow-[0_-2px_8px_rgba(0,0,0,0.04)]">
@@ -452,7 +575,7 @@ export function ChatArea({
             <button 
               title="Send" 
               onClick={() => send()} 
-              disabled={sending || !inputText.trim()}
+              disabled={sending || (!inputText.trim() && !attachedFile)}
               className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-[#8c0817] text-white flex items-center justify-center border-none shrink-0 cursor-pointer shadow-md hover:bg-red-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <IcoSend color="white" />

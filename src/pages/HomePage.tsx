@@ -38,6 +38,9 @@ export function HomePage() {
   const [showCalls, setShowCalls] = useState(false)
   const [activeNavTab, setActiveNavTab] = useState<'chats' | 'calls' | 'calendar'>('chats')
   const [editName, setEditName] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [editBio, setEditBio] = useState('')
+  const [attachedFile, setAttachedFile] = useState<{ file: File; name: string; size: number; type: string } | null>(null)
 
   const [typingUsers, setTypingUsers] = useState<Record<string, string[]>>({})
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
@@ -296,8 +299,33 @@ export function HomePage() {
 
   const handleScroll = () => { if (feedRef.current && feedRef.current.scrollTop < 80) loadMore() }
 
-  const send = async (fileUrl?: string, fileType?: string) => {
-    if (!activeRoom || (!inputText.trim() && !fileUrl)) return
+  const send = async (customFileUrl?: string, customFileType?: string) => {
+    if (customFileUrl) {
+      if (!activeRoom) return
+      if (!socketService.isConnected()) {
+        setSendError('Realtime connection is not ready. Please try again.')
+        return
+      }
+      setSending(true)
+      setSendError(null)
+      try {
+        const messageKey = `${activeRoom.id}|${me?.id ?? ''}||${customFileUrl}`
+        const optimisticId = `pending-${Date.now()}`
+        pendingMessages.current.set(messageKey, optimisticId)
+        socketService.sendMessage(activeRoom.id, null, customFileUrl, customFileType ?? null)
+        if (me) {
+          setMessages(prev => [...prev, {
+            id: optimisticId, roomId: activeRoom.id, senderId: me.id,
+            text: null, fileUrl: customFileUrl, fileType: customFileType ?? null,
+            createdAt: new Date().toISOString(), status: 'sent' as const, sender: me,
+          }])
+        }
+      } catch { }
+      setSending(false)
+      return
+    }
+
+    if (!activeRoom || (!inputText.trim() && !attachedFile)) return
     if (!socketService.isConnected()) {
       setSendError('Realtime connection is not ready. Please try again.')
       return
@@ -305,20 +333,31 @@ export function HomePage() {
     setSending(true)
     const text = inputText.trim()
     setSendError(null)
+
     try {
-      const messageKey = `${activeRoom.id}|${me?.id ?? ''}|${text}|${fileUrl ?? ''}`
+      let finalFileUrl: string | null = null
+      let finalFileType: string | null = null
+
+      if (attachedFile) {
+        const uploaded = await chatService.uploadFile(attachedFile.file)
+        finalFileUrl = uploaded.fileUrl
+        finalFileType = uploaded.fileType
+      }
+
+      const messageKey = `${activeRoom.id}|${me?.id ?? ''}|${text}|${finalFileUrl ?? ''}`
       const optimisticId = `pending-${Date.now()}`
       pendingMessages.current.set(messageKey, optimisticId)
-      socketService.sendMessage(activeRoom.id, text || null, fileUrl ?? null, fileType ?? null)
+      socketService.sendMessage(activeRoom.id, text || null, finalFileUrl, finalFileType)
 
       if (me) {
         setMessages(prev => [...prev, {
           id: optimisticId, roomId: activeRoom.id, senderId: me.id,
-          text: text || null, fileUrl: fileUrl ?? null, fileType: fileType ?? null,
+          text: text || null, fileUrl: finalFileUrl, fileType: finalFileType,
           createdAt: new Date().toISOString(), status: 'sent' as const, sender: me,
         }])
       }
       setInputText('')
+      setAttachedFile(null)
       if (inputRef.current) { inputRef.current.style.height = 'auto' }
       setTimeout(() => feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: 'smooth' }), 50)
     } catch (error) {
@@ -346,11 +385,15 @@ export function HomePage() {
     }
   }
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    try { const r = await chatService.uploadFile(file); await send(r.fileUrl, r.fileType) }
-    catch { /**/ }
+    setAttachedFile({
+      file,
+      name: file.name,
+      size: file.size,
+      type: file.type || file.name.split('.').pop() || 'document'
+    })
     e.target.value = ''
   }
 
@@ -371,6 +414,8 @@ export function HomePage() {
     if (me) {
       setEditName(me.name)
       setEditAvatarUrl(me.avatarUrl || '')
+      setEditPhone(me.phone || me.phoneNumber || '')
+      setEditBio(me.bio || '')
       setShowProfile(true)
     }
   }
@@ -378,7 +423,13 @@ export function HomePage() {
   const saveProfile = async () => {
     setSavingProfile(true)
     try {
-      const updated = await chatService.updateMyProfile({ name: editName, avatarUrl: editAvatarUrl })
+      const updated = await chatService.updateMyProfile({
+        name: editName,
+        avatarUrl: editAvatarUrl,
+        phone: editPhone,
+        phoneNumber: editPhone,
+        bio: editBio
+      })
       setMe(updated)
       setShowProfile(false)
     } catch { }
@@ -414,7 +465,13 @@ export function HomePage() {
       const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' })
       const res = await chatService.uploadFile(file)
       setEditAvatarUrl(res.fileUrl)
-      const updated = await chatService.updateMyProfile({ name: editName, avatarUrl: res.fileUrl })
+      const updated = await chatService.updateMyProfile({
+        name: editName,
+        avatarUrl: res.fileUrl,
+        phone: editPhone,
+        phoneNumber: editPhone,
+        bio: editBio
+      })
       setMe(updated)
     } catch { }
     setUploadingAvatar(false)
@@ -433,12 +490,13 @@ export function HomePage() {
   const curAvatar = activeRoom && me ? roomAvatar(activeRoom, me.id) : null
 
   return (
-    <div className="flex h-screen w-full overflow-hidden font-sans bg-gray-50 dark:bg-[#090d16] dark:text-slate-100 transition-colors duration-300 pb-[56px] md:pb-0">
+    <div className={`flex h-screen w-full overflow-hidden font-sans bg-gray-50 dark:bg-[#090d16] dark:text-slate-100 transition-colors duration-300 ${!showSidebar && activeRoom ? 'pb-0' : 'pb-[56px] md:pb-0'}`}>
       
       {/* Left Navigation Bar */}
       <SidebarNav
         me={me}
         activeNavTab={activeNavTab}
+        hideMobileNav={!showSidebar && !!activeRoom}
         onChatClick={() => {
           setActiveNavTab('chats')
           setShowSidebar(true)
@@ -517,6 +575,8 @@ export function HomePage() {
           sendError={sendError}
           sending={sending}
           send={send}
+          attachedFile={attachedFile}
+          onRemoveAttachment={() => setAttachedFile(null)}
         />
       </div>
 
@@ -533,6 +593,10 @@ export function HomePage() {
         editName={editName}
         setEditName={setEditName}
         editAvatarUrl={editAvatarUrl}
+        editPhone={editPhone}
+        setEditPhone={setEditPhone}
+        editBio={editBio}
+        setEditBio={setEditBio}
         savingProfile={savingProfile}
         saveProfile={saveProfile}
         profileFileRef={profileFileRef}

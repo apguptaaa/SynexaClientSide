@@ -10,11 +10,16 @@ export function ProfileSidebar({
   editName,
   setEditName,
   editAvatarUrl,
+  editPhone,
+  setEditPhone,
+  editBio,
+  setEditBio,
   savingProfile,
   saveProfile,
   profileFileRef,
   handleProfileAvatarUpload,
-  uploadingAvatar
+  uploadingAvatar,
+  onLogout
 }: {
   showProfile: boolean
   setShowProfile: (show: boolean) => void
@@ -22,11 +27,16 @@ export function ProfileSidebar({
   editName: string
   setEditName: (name: string) => void
   editAvatarUrl: string
+  editPhone: string
+  setEditPhone: (phone: string) => void
+  editBio: string
+  setEditBio: (bio: string) => void
   savingProfile: boolean
   saveProfile: () => void
   profileFileRef: React.RefObject<HTMLInputElement | null>
   handleProfileAvatarUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
   uploadingAvatar: boolean
+  onLogout?: () => void
 }) {
   const [isEditing, setIsEditing] = useState(false)
 
@@ -51,17 +61,29 @@ export function ProfileSidebar({
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
-                className="px-3 h-8 rounded-full flex items-center justify-center border border-gray-200 dark:border-slate-700 bg-transparent text-sm font-semibold text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                className="px-4 h-8 rounded-full flex items-center justify-center border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-xs font-bold text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer transition-all shadow-sm"
               >
-                Edit
+                Edit Profile
               </button>
             ) : (
-              <button
-                onClick={() => setIsEditing(false)}
-                className="px-3 h-8 rounded-full flex items-center justify-center border border-gray-200 dark:border-slate-700 bg-transparent text-sm font-semibold text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-              >
-                Cancel
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="px-3 h-8 rounded-full flex items-center justify-center border border-gray-200 dark:border-slate-700 bg-transparent text-xs font-semibold text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    saveProfile()
+                    setIsEditing(false)
+                  }}
+                  disabled={savingProfile}
+                  className="px-4 h-8 rounded-full flex items-center justify-center border-none bg-gradient-to-r from-[#8c0817] to-[#b91c1c] text-xs font-bold text-white shadow-md hover:shadow-lg cursor-pointer transition-all disabled:opacity-50"
+                >
+                  {savingProfile ? 'Saving…' : 'Save'}
+                </button>
+              </div>
             )}
             <button 
               onClick={() => {
@@ -81,7 +103,7 @@ export function ProfileSidebar({
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto bg-[#f8f9fb] dark:bg-[#0b0f19] max-h-[75vh]">
           {/* Avatar Zone */}
-          <div className="flex flex-col items-center pt-8 pb-6 bg-white dark:bg-[#0f172a] border-b border-gray-100/80 dark:border-slate-800">
+          <div className="flex flex-col items-center pt-8 pb-6 bg-white dark:bg-[#0f172a] border-b border-gray-100/80 dark:border-slate-800 relative">
             <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" ref={profileFileRef as React.RefObject<HTMLInputElement>} onChange={handleProfileAvatarUpload} />
 
             {/* Clickable Avatar */}
@@ -112,26 +134,35 @@ export function ProfileSidebar({
             </div>
 
             {isEditing ? (
-              <p className="mt-3 text-[0.82rem] text-gray-400 dark:text-slate-400 font-medium">Tap to change photo</p>
+              <p className="mt-3 text-[0.82rem] text-gray-400 dark:text-slate-400 font-medium">Tap photo to change</p>
             ) : (
-              <div className="h-5 mt-3"></div>
+              <div className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-900/40">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Active Now
+              </div>
             )}
           </div>
 
           {/* Name Edit Card */}
-          <div className="bg-white dark:bg-[#0f172a] mx-5 mt-4 rounded-2xl px-5 py-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] border border-gray-100 dark:border-slate-800">
-            <label className="text-[0.72rem] font-extrabold text-gray-400 dark:text-slate-400 uppercase tracking-widest block mb-2">Display Name</label>
+          <div className="bg-white dark:bg-[#0f172a] mx-5 mt-4 rounded-2xl px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 dark:border-slate-800">
+            <div className="flex items-center gap-2 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#8c0817] dark:text-red-400">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              <label className="text-[0.72rem] font-extrabold text-gray-400 dark:text-slate-400 uppercase tracking-widest block">Display Name</label>
+            </div>
             {isEditing ? (
               <>
                 <input
                   value={editName}
                   onChange={e => setEditName(e.target.value)}
-                  className="w-full border-none border-b-2 border-gray-200 dark:border-slate-700 outline-none text-[1.05rem] text-[#111827] dark:text-slate-100 bg-transparent pb-2 font-bold box-border focus:border-[#8c0817] dark:focus:border-red-500 transition-colors"
+                  className="w-full border-none border-b-2 border-gray-200 dark:border-slate-700 outline-none text-[1.02rem] text-[#111827] dark:text-slate-100 bg-transparent pb-1 font-bold box-border focus:border-[#8c0817] dark:focus:border-red-500 transition-colors"
                 />
-                <p className="mt-2.5 text-[0.78rem] text-gray-400 dark:text-slate-400 font-normal leading-relaxed">This name is visible to your contacts.</p>
+                <p className="mt-2 text-[0.78rem] text-gray-400 dark:text-slate-400 font-normal leading-relaxed">This name is visible to your contacts.</p>
               </>
             ) : (
-              <div className="text-[1.05rem] text-[#111827] dark:text-slate-100 font-bold pb-2">
+              <div className="text-[1.02rem] text-[#111827] dark:text-slate-100 font-bold">
                 {editName || me?.name || 'User'}
               </div>
             )}
@@ -139,28 +170,87 @@ export function ProfileSidebar({
 
           {/* Email Card */}
           {me?.email && (
-            <div className="bg-white dark:bg-[#0f172a] mx-5 mt-3 rounded-2xl px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)] border border-gray-100 dark:border-slate-800">
-              <label className="text-[0.72rem] font-extrabold text-gray-400 dark:text-slate-400 uppercase tracking-widest block mb-1">Email</label>
+            <div className="bg-white dark:bg-[#0f172a] mx-5 mt-3 rounded-2xl px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 dark:border-slate-800">
+              <div className="flex items-center gap-2 mb-1">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#8c0817] dark:text-red-400">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+                <label className="text-[0.72rem] font-extrabold text-gray-400 dark:text-slate-400 uppercase tracking-widest block">Email</label>
+              </div>
               <p className="text-[0.95rem] text-gray-700 dark:text-slate-200 font-semibold m-0">{me.email}</p>
             </div>
           )}
 
-          {/* Save Button */}
-          {isEditing && (
-            <div className="px-5 pt-5 pb-6">
+          {/* Phone Number Card */}
+          <div className="bg-white dark:bg-[#0f172a] mx-5 mt-3 rounded-2xl px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 dark:border-slate-800">
+            <div className="flex items-center gap-2 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#8c0817] dark:text-red-400">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+              </svg>
+              <label className="text-[0.72rem] font-extrabold text-gray-400 dark:text-slate-400 uppercase tracking-widest block">Phone Number</label>
+            </div>
+            {isEditing ? (
+              <input
+                type="tel"
+                value={editPhone}
+                onChange={e => setEditPhone(e.target.value)}
+                placeholder="+1 (555) 000-0000"
+                className="w-full border-none border-b-2 border-gray-200 dark:border-slate-700 outline-none text-[0.95rem] text-[#111827] dark:text-slate-100 bg-transparent pb-1 font-semibold box-border focus:border-[#8c0817] dark:focus:border-red-500 transition-colors"
+              />
+            ) : (
+              <p className="text-[0.95rem] text-gray-700 dark:text-slate-200 font-semibold m-0">
+                {editPhone || me?.phone || me?.phoneNumber || 'Not specified'}
+              </p>
+            )}
+          </div>
+
+          {/* Bio Card */}
+          <div className="bg-white dark:bg-[#0f172a] mx-5 mt-3 rounded-2xl px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 dark:border-slate-800">
+            <div className="flex items-center gap-2 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#8c0817] dark:text-red-400">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+              <label className="text-[0.72rem] font-extrabold text-gray-400 dark:text-slate-400 uppercase tracking-widest block">Bio</label>
+            </div>
+            {isEditing ? (
+              <textarea
+                value={editBio}
+                onChange={e => setEditBio(e.target.value)}
+                placeholder="Write something about yourself..."
+                rows={3}
+                className="w-full border border-gray-200 dark:border-slate-700 rounded-xl p-2.5 outline-none text-[0.92rem] text-[#111827] dark:text-slate-100 bg-transparent font-medium box-border focus:border-[#8c0817] dark:focus:border-red-500 transition-colors resize-none"
+              />
+            ) : (
+              <p className="text-[0.92rem] text-gray-600 dark:text-slate-300 font-medium m-0 leading-relaxed whitespace-pre-wrap">
+                {editBio || me?.bio || 'No bio added yet'}
+              </p>
+            )}
+          </div>
+
+          {/* Log Out Section */}
+          {!isEditing && onLogout && (
+            <div className="px-5 pt-4 pb-6">
               <button
                 onClick={() => {
-                  saveProfile()
-                  setIsEditing(false)
+                  setShowProfile(false)
+                  onLogout()
                 }}
-                disabled={savingProfile}
-                className={`w-full rounded-2xl py-3.5 text-[0.95rem] font-extrabold text-white transition-all duration-300 tracking-wide ${savingProfile ? 'bg-gray-300 dark:bg-slate-700 cursor-not-allowed shadow-none' : 'bg-gradient-to-r from-[#8c0817] to-[#b91c1c] cursor-pointer shadow-[0_8px_24px_rgba(140,8,23,0.3)] hover:shadow-[0_12px_32px_rgba(140,8,23,0.4)] hover:scale-[1.01] active:scale-[0.99]'}`}
+                className="w-full rounded-2xl py-3 text-[0.88rem] font-extrabold text-red-600 dark:text-red-400 bg-red-50/80 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 border border-red-200/80 dark:border-red-900/50 cursor-pointer transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
               >
-                {savingProfile ? 'Saving…' : 'Save Changes'}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                Log Out
               </button>
             </div>
           )}
-          {!isEditing && <div className="pb-6"></div>}
+          {isEditing && <div className="pb-6"></div>}
         </div>
       </div>
     </div>
