@@ -31,7 +31,27 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
-  const [serverWaking, setServerWaking] = useState(false)
+  const [checkingBackend, setCheckingBackend] = useState(true)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const pingBackend = async () => {
+      try {
+        const res = await fetch('https://synexabackend.onrender.com/health')
+        if (isMounted && res.ok) {
+          setCheckingBackend(false)
+        } else {
+          setTimeout(pingBackend, 3000)
+        }
+      } catch {
+        if (isMounted) setTimeout(pingBackend, 3000)
+      }
+    }
+
+    pingBackend()
+    return () => { isMounted = false }
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -75,68 +95,95 @@ export function LoginPage() {
 
     const google = (window as any).google
     if (!google?.accounts?.id) {
-      setError('Google Sign-In is initializing. Please try again in a moment.')
+      setError('Google Sign-In is still loading. Please try again.')
       setGoogleLoading(false)
       return
     }
 
-    try {
-      google.accounts.id.initialize({
-        client_id: '644066194449-mj91v7cjpl8d8rtsfstuvdt4rrjl068t.apps.googleusercontent.com',
-        callback: async (response: any) => {
-          setGoogleLoading(true)
-          try {
-            const res = await fetch('https://synexabackend.onrender.com/api/auth/google', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ idToken: response.credential })
-            })
+    google.accounts.id.initialize({
+      client_id: '644066194449-mj91v7cjpl8d8rtsfstuvdt4rrjl068t.apps.googleusercontent.com',
+      callback: async (response: any) => {
+        try {
+          const res = await fetch('https://synexabackend.onrender.com/api/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken: response.credential })
+          })
 
-            const data = await res.json()
+          const data = await res.json()
 
-            if (!res.ok) {
-              throw new Error(data.message || 'Google login failed')
-            }
-
-            localStorage.setItem('accessToken', data.accessToken)
-            if (data.refreshToken) {
-              localStorage.setItem('refreshToken', data.refreshToken)
-            }
-
-            window.location.href = '/home'
-          } catch (err: unknown) {
-            if (err instanceof Error) {
-              setError(err.message || 'Google login failed')
-            } else {
-              setError('Google login failed')
-            }
-          } finally {
-            setGoogleLoading(false)
+          if (!res.ok) {
+            throw new Error(data.message || 'Google login failed')
           }
+
+          localStorage.setItem('accessToken', data.accessToken)
+          if (data.refreshToken) {
+            localStorage.setItem('refreshToken', data.refreshToken)
+          }
+
+          window.location.href = '/home'
+        } catch (err: unknown) {
+          if (err instanceof Error) {
+            setError(err.message || 'Google login failed')
+          } else {
+            setError('Google login failed')
+          }
+        } finally {
+          setGoogleLoading(false)
         }
-      })
+      }
+    })
 
-      google.accounts.id.prompt((notification: any) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          const popupDiv = document.getElementById('google-signin-popup')
-          if (popupDiv) {
-            popupDiv.innerHTML = ''
-            google.accounts.id.renderButton(popupDiv, {
-              theme: 'outline',
-              size: 'large',
-              width: '100%',
-              type: 'standard'
-            })
-            const btn = popupDiv.querySelector('div[role="button"]') as HTMLElement | null
-            if (btn) btn.click()
-          }
+    google.accounts.id.prompt((notification: any) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        // One Tap not available, fall back to button-style popup
+        google.accounts.id.renderButton(
+          document.createElement('div'),
+          { type: 'standard' }
+        )
+        // Use the popup flow instead
+        google.accounts.oauth2.initTokenRequest // not needed, use prompt
+        // Trigger the sign-in popup manually
+        const popupDiv = document.getElementById('google-signin-popup')
+        if (popupDiv) {
+          google.accounts.id.renderButton(popupDiv, {
+            theme: 'outline',
+            size: 'large',
+            width: '100%'
+          })
+          (popupDiv.querySelector('div[role="button"]') as HTMLElement | null)?.click()
         }
         setGoogleLoading(false)
-      })
-    } catch {
-      setError('Could not initialize Google Sign-In')
-      setGoogleLoading(false)
-    }
+      }
+    })
+  }
+
+  // Backend Health / Loading Screen with new 3D logo
+  if (checkingBackend) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-[#fafbfc] font-sans relative overflow-hidden p-6">
+        <div className="relative z-10 flex flex-col items-center text-center max-w-sm">
+          {/* 3D Logo */}
+          <div className="w-20 h-20 rounded-3xl shadow-[0_12px_36px_rgba(140,8,23,0.15)] mb-6 animate-pulse flex items-center justify-center">
+            <SynexaLogo size={80} variant="color" />
+          </div>
+
+          <h2 className="text-xl font-bold text-gray-900 tracking-[-0.01em] mb-1.5">
+            Connecting to Synexa
+          </h2>
+          <p className="text-xs text-gray-400 font-medium mb-6">
+            Establishing secure workspace connection...
+          </p>
+
+          {/* Clean Dots loader */}
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#8c0817] animate-[bounce_1.4s_infinite_0s]"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#8c0817] animate-[bounce_1.4s_infinite_0.2s]"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#8c0817] animate-[bounce_1.4s_infinite_0.4s]"></span>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
