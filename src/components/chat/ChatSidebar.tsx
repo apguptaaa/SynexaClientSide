@@ -27,7 +27,7 @@ export function ChatSidebar({
   const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0)
 
   return (
-    <div className="w-full max-w-[360px] min-w-[300px] flex flex-col bg-[#f4f5fa] dark:bg-[#0f172a] h-full border-r border-gray-200/60 dark:border-slate-800/80 shrink-0 z-10 transition-colors duration-300">
+    <div className="w-full md:max-w-[360px] md:min-w-[300px] flex flex-col bg-[#f4f5fa] dark:bg-[#0f172a] h-full border-r border-gray-200/60 dark:border-slate-800/80 shrink-0 z-10 transition-colors duration-300">
       {/* header */}
       <div className="px-6 py-6 flex items-center justify-between">
         <div className="flex items-center gap-3">

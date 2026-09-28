@@ -151,7 +151,7 @@ export function LoginPage() {
             size: 'large',
             width: '100%'
           })
-          popupDiv.querySelector('div[role="button"]')?.click()
+          (popupDiv.querySelector('div[role="button"]') as HTMLElement | null)?.click()
         }
         setGoogleLoading(false)
       }

@@ -131,7 +131,7 @@ export function ChatArea({
       {!activeRoom ? <WelcomeScreen /> : (
         <>
           {/* room header */}
-          <div className="bg-[#fafbfc] dark:bg-[#0f172a] px-6 py-4 flex items-center gap-4 border-b border-gray-200 dark:border-slate-800 shrink-0 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+          <div className="bg-[#fafbfc] dark:bg-[#0f172a] px-3 md:px-6 py-3 md:py-4 flex items-center gap-3 md:gap-4 border-b border-gray-200 dark:border-slate-800 shrink-0 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
             <button className="md:hidden flex items-center bg-transparent border-none cursor-pointer pr-1" onClick={() => setShowSidebar(true)}>
               <IcoBack color="#9ca3af" />
             </button>
@@ -230,7 +230,7 @@ export function ChatArea({
           <div 
             ref={feedRef as any} 
             onScroll={handleScroll} 
-            className="msg-feed flex-1 overflow-y-auto bg-white dark:bg-[#0b0f19] py-4 px-[5%] relative" 
+            className="msg-feed flex-1 overflow-y-auto bg-white dark:bg-[#0b0f19] py-4 px-[3%] md:px-[5%] relative" 
             style={{ 
               scrollBehavior: 'smooth',
               ...(wallpaper ? {
@@ -358,18 +358,18 @@ export function ChatArea({
           </div>
 
           {/* input bar */}
-          <div className="relative shrink-0 flex items-end gap-3 px-6 py-4 bg-[#fafbfc] dark:bg-[#0f172a] border-t border-gray-200 dark:border-slate-800 shadow-[0_-2px_8px_rgba(0,0,0,0.04)]">
+          <div className="relative shrink-0 flex items-end gap-2 md:gap-3 px-3 md:px-6 py-3 md:py-4 bg-[#fafbfc] dark:bg-[#0f172a] border-t border-gray-200 dark:border-slate-800 shadow-[0_-2px_8px_rgba(0,0,0,0.04)]">
             {/* Emoji Picker Popup */}
             {showEmojiPicker && (
-              <div ref={emojiPickerRef as any} className="absolute bottom-[80px] left-6 z-[300] shadow-[0_12px_40px_rgba(0,0,0,0.12)] rounded-2xl overflow-hidden border border-gray-100">
+              <div ref={emojiPickerRef as any} className="absolute bottom-[70px] md:bottom-[80px] left-2 md:left-6 z-[300] shadow-[0_12px_40px_rgba(0,0,0,0.12)] rounded-2xl overflow-hidden border border-gray-100">
                 <EmojiPicker
                   onEmojiClick={(data: EmojiClickData) => {
                     setInputText(prev => prev + data.emoji)
                     inputRef.current?.focus()
                   }}
                   skinTonesDisabled
-                  height={400}
-                  width={340}
+                  height={350}
+                  width={Math.min(340, window.innerWidth - 24)}
                   searchDisabled={false}
                   previewConfig={{ showPreview: false }}
                 />
@@ -377,7 +377,7 @@ export function ChatArea({
             )}
             {/* Attachment Menu */}
             {showAttachMenu && (
-              <div ref={attachMenuRef as any} className="absolute bottom-[80px] left-[60px] z-[300] bg-white dark:bg-slate-800 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.25)] px-3 pt-4 pb-3 flex flex-col gap-1 min-w-[220px] origin-bottom-left animate-scale-in border border-gray-100 dark:border-slate-700">
+              <div ref={attachMenuRef as any} className="absolute bottom-[70px] md:bottom-[80px] left-2 md:left-[60px] z-[300] bg-white dark:bg-slate-800 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.25)] px-3 pt-4 pb-3 flex flex-col gap-1 min-w-[200px] md:min-w-[220px] origin-bottom-left animate-scale-in border border-gray-100 dark:border-slate-700">
                 {([
                   { label: 'Image & Video', accept: 'image/*,video/*', ref: imgFileRef, color: '#8b5cf6', icon: (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>) },
                   { label: 'Document', accept: '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar', ref: docFileRef, color: '#3b82f6', icon: (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>) },
@@ -402,8 +402,7 @@ export function ChatArea({
                       navigator.geolocation.getCurrentPosition(pos => {
                         const { latitude, longitude } = pos.coords
                         const mapsUrl = `https://maps.google.com/?q=${latitude},${longitude}`
-                        setInputText(prev => prev + mapsUrl)
-                        inputRef.current?.focus()
+                        send(mapsUrl, 'location')
                       }, () => alert('Location access denied.'))
                     } else { alert('Geolocation not supported.') }
                   }}
@@ -432,10 +431,10 @@ export function ChatArea({
             <input ref={docFileRef as any} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" className="hidden" onChange={handleFile} />
             <input ref={fileRef as any} type="file" className="hidden" onChange={handleFile} />
 
-            <div className="flex-1 bg-gray-50 dark:bg-slate-800/90 rounded-3xl flex items-center border border-transparent focus-within:border-gray-200 dark:focus-within:border-slate-700 focus-within:bg-white dark:focus-within:bg-slate-800 transition-colors min-h-[48px] px-2 shadow-[inset_0_1px_3px_rgba(0,0,0,0.02)]">
+            <div className="flex-1 bg-gray-50 dark:bg-slate-800/90 rounded-3xl flex items-center border border-transparent focus-within:border-gray-200 dark:focus-within:border-slate-700 focus-within:bg-white dark:focus-within:bg-slate-800 transition-colors min-h-[44px] md:min-h-[48px] px-2 shadow-[inset_0_1px_3px_rgba(0,0,0,0.02)]">
               <textarea
                 ref={inputRef as any}
-                className="flex-1 border-none bg-transparent outline-none resize-none text-gray-800 dark:text-slate-100 px-4 py-3.5 text-[0.95rem] font-medium max-h-[120px] min-h-[24px] placeholder:text-gray-400 dark:placeholder:text-slate-500"
+                className="flex-1 border-none bg-transparent outline-none resize-none text-gray-800 dark:text-slate-100 px-3 md:px-4 py-3 md:py-3.5 text-[0.9rem] md:text-[0.95rem] font-medium max-h-[120px] min-h-[24px] placeholder:text-gray-400 dark:placeholder:text-slate-500"
                 placeholder="Type a message..."
                 value={inputText}
                 onChange={handleInputChange}
@@ -454,7 +453,7 @@ export function ChatArea({
               title="Send" 
               onClick={() => send()} 
               disabled={sending || !inputText.trim()}
-              className="w-12 h-12 rounded-full bg-[#8c0817] text-white flex items-center justify-center border-none shrink-0 cursor-pointer shadow-md hover:bg-red-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-[#8c0817] text-white flex items-center justify-center border-none shrink-0 cursor-pointer shadow-md hover:bg-red-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <IcoSend color="white" />
             </button>

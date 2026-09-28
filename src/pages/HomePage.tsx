@@ -433,7 +433,7 @@ export function HomePage() {
   const curAvatar = activeRoom && me ? roomAvatar(activeRoom, me.id) : null
 
   return (
-    <div className="flex h-screen w-full overflow-hidden font-sans bg-gray-50 dark:bg-[#090d16] dark:text-slate-100 transition-colors duration-300">
+    <div className="flex h-screen w-full overflow-hidden font-sans bg-gray-50 dark:bg-[#090d16] dark:text-slate-100 transition-colors duration-300 pb-[56px] md:pb-0">
       
       {/* Left Navigation Bar */}
       <SidebarNav
@@ -458,7 +458,7 @@ export function HomePage() {
       />
 
       {/* Chat Sidebar Area */}
-      <div className={`flex shrink-0 w-full md:w-[360px] h-full relative transition-transform duration-250 ease-in-out z-10 ${!showSidebar ? 'absolute inset-0 -translate-x-full pointer-events-none md:static md:translate-x-0 md:pointer-events-auto' : ''}`}>
+      <div className={`flex shrink-0 w-full md:w-[360px] h-full transition-transform duration-250 ease-in-out z-10 ${!showSidebar ? 'absolute inset-0 -translate-x-full pointer-events-none md:static md:translate-x-0 md:pointer-events-auto' : 'absolute inset-0 md:static md:inset-auto z-30'}`}>
         
         <ChatSidebar
           me={me}
