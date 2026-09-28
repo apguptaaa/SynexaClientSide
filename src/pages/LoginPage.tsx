@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { SynexaLogo } from '../components/common/SynexaLogo'
+import { BACKEND_URL, GOOGLE_CLIENT_ID } from '../constants/config'
 
-const GoogleIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-  </svg>
-)
+
 
 const MailIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
@@ -31,7 +25,27 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
-  const [serverWaking, setServerWaking] = useState(false)
+  const [checkingBackend, setCheckingBackend] = useState(true)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const pingBackend = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/health`)
+        if (isMounted && res.ok) {
+          setCheckingBackend(false)
+        } else {
+          setTimeout(pingBackend, 3000)
+        }
+      } catch {
+        if (isMounted) setTimeout(pingBackend, 3000)
+      }
+    }
+
+    pingBackend()
+    return () => { isMounted = false }
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,7 +53,7 @@ export function LoginPage() {
     setLoading(true)
 
     try {
-      const response = await fetch('https://synexabackend.onrender.com/api/auth/login', {
+      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -69,33 +83,39 @@ export function LoginPage() {
     }
   }
 
-  const handleGoogleLogin = () => {
-    setError('')
-    setGoogleLoading(true)
+  useEffect(() => {
+    if (checkingBackend) return
 
-    const google = (window as any).google
-    if (!google?.accounts?.id) {
-      setError('Google Sign-In is initializing. Please try again in a moment.')
-      setGoogleLoading(false)
-      return
-    }
+    let timer: any
+    const initGoogle = () => {
+      const google = (window as any).google
+      if (!google?.accounts?.id) {
+        timer = setTimeout(initGoogle, 200)
+        return
+      }
 
-    try {
       google.accounts.id.initialize({
-        client_id: '644066194449-mj91v7cjpl8d8rtsfstuvdt4rrjl068t.apps.googleusercontent.com',
+        client_id: GOOGLE_CLIENT_ID,
         callback: async (response: any) => {
           setGoogleLoading(true)
+          setError('')
           try {
-            const res = await fetch('https://synexabackend.onrender.com/api/auth/google', {
+            const res = await fetch(`${BACKEND_URL}/api/auth/google`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ idToken: response.credential })
             })
 
-            const data = await res.json()
+            let data: any = {}
+            const text = await res.text()
+            try {
+              data = text ? JSON.parse(text) : {}
+            } catch {
+              data = {}
+            }
 
             if (!res.ok) {
-              throw new Error(data.message || 'Google login failed')
+              throw new Error(data.message || `Server returned ${res.status}: ${res.statusText || 'Google login route not found'}`)
             }
 
             localStorage.setItem('accessToken', data.accessToken)
@@ -116,27 +136,51 @@ export function LoginPage() {
         }
       })
 
-      google.accounts.id.prompt((notification: any) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          const popupDiv = document.getElementById('google-signin-popup')
-          if (popupDiv) {
-            popupDiv.innerHTML = ''
-            google.accounts.id.renderButton(popupDiv, {
-              theme: 'outline',
-              size: 'large',
-              width: '100%',
-              type: 'standard'
-            })
-            const btn = popupDiv.querySelector('div[role="button"]') as HTMLElement | null
-            if (btn) btn.click()
-          }
-        }
-        setGoogleLoading(false)
-      })
-    } catch {
-      setError('Could not initialize Google Sign-In')
-      setGoogleLoading(false)
+      const container = document.getElementById('google-login-btn')
+      if (container) {
+        container.innerHTML = ''
+        google.accounts.id.renderButton(container, {
+          theme: 'outline',
+          size: 'large',
+          type: 'standard',
+          text: 'continue_with',
+          shape: 'rectangular',
+          width: 380,
+          logo_alignment: 'left'
+        })
+      }
     }
+
+    initGoogle()
+    return () => clearTimeout(timer)
+  }, [checkingBackend])
+
+  // Backend Health / Loading Screen with new 3D logo
+  if (checkingBackend) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-[#fafbfc] font-sans relative overflow-hidden p-6">
+        <div className="relative z-10 flex flex-col items-center text-center max-w-sm">
+          {/* 3D Logo */}
+          <div className="w-20 h-20 rounded-3xl shadow-[0_12px_36px_rgba(140,8,23,0.15)] mb-6 animate-pulse flex items-center justify-center">
+            <SynexaLogo size={80} variant="color" />
+          </div>
+
+          <h2 className="text-xl font-bold text-gray-900 tracking-[-0.01em] mb-1.5">
+            Connecting to Synexa
+          </h2>
+          <p className="text-xs text-gray-400 font-medium mb-6">
+            Establishing secure workspace connection...
+          </p>
+
+          {/* Clean Dots loader */}
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#8c0817] animate-[bounce_1.4s_infinite_0s]"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#8c0817] animate-[bounce_1.4s_infinite_0.2s]"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#8c0817] animate-[bounce_1.4s_infinite_0.4s]"></span>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -242,25 +286,16 @@ export function LoginPage() {
           </div>
 
           {/* Google Sign-in */}
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={googleLoading}
-            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs sm:text-sm cursor-pointer transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <div className="w-full flex justify-center min-h-[44px]">
             {googleLoading ? (
-              <>
+              <div className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-gray-200 bg-white text-gray-700 font-bold text-xs sm:text-sm">
                 <span className="w-4 h-4 rounded-full border-2 border-gray-300 border-t-gray-600 animate-spin"></span>
                 <span>Signing in with Google…</span>
-              </>
+              </div>
             ) : (
-              <>
-                <GoogleIcon />
-                Continue with Google
-              </>
+              <div id="google-login-btn" className="w-full flex justify-center [&>div]:w-full [&_iframe]:!w-full"></div>
             )}
-          </button>
-          <div id="google-signin-popup" className="hidden"></div>
+          </div>
 
           {/* Divider */}
           <div className="flex items-center gap-3 my-6">

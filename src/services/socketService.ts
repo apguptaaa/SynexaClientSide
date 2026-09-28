@@ -1,7 +1,6 @@
 import { io, Socket } from 'socket.io-client'
 import type { Message, Room, Notification } from '../types/chat'
-
-const BACKEND_URL = 'https://synexabackend.onrender.com'
+import { BACKEND_URL } from '../constants/config'
 
 type TypingPayload = { roomId: string; userId: string; userName: string }
 type SeenPayload = { roomId: string; userId: string; messageIds: string[] }
