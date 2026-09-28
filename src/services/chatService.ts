@@ -10,7 +10,13 @@ import type {
 
 export const chatService = {
   getMyProfile: (): Promise<User> => api.get('/api/users/me'),
-  updateMyProfile: (payload: { name?: string; avatarUrl?: string }): Promise<User> => api.put('/api/users/me', payload),
+  updateMyProfile: (payload: {
+    name?: string
+    avatarUrl?: string
+    phone?: string
+    phoneNumber?: string
+    bio?: string
+  }): Promise<User> => api.put('/api/users/me', payload),
 
   searchUsers: (q: string): Promise<User[]> =>
     api.get(`/api/users/search?q=${encodeURIComponent(q)}`),
