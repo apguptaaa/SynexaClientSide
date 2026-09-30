@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import type { Area } from 'react-easy-crop'
 import { chatService } from '../services/chatService'
 import { socketService } from '../services/socketService'
-import type { Room, Message, User } from '../types/chat'
+import type { Room, Message, User, Notification } from '../types/chat'
 import { sortRooms, roomName, otherUser, roomAvatar } from '../utils/chatHelpers'
 import { NewChatModal } from '../components/chat/NewChatModal'
 import { ChatSidebar } from '../components/chat/ChatSidebar'
@@ -15,6 +15,10 @@ import { SidebarNav } from '../components/layout/SidebarNav'
 import { SettingsModal } from '../components/settings/SettingsModal'
 import { CalendarModal } from '../components/calendar/CalendarModal'
 import { CallsModal } from '../components/calls/CallsModal'
+import { CallOverlay } from '../components/calls/CallOverlay'
+import { useWebRTCCall } from '../hooks/useWebRTCCall'
+import { hydrateTheme } from '../hooks/useTheme'
+import { callsService } from '../services/callsService'
 
 export function HomePage() {
   const [me, setMe] = useState<User | null>(null)
@@ -36,6 +40,7 @@ export function HomePage() {
   const [showSettings, setShowSettings] = useState(false)
   const [showCalendar, setShowCalendar] = useState(false)
   const [showCalls, setShowCalls] = useState(false)
+  const [chatWallpaper, setChatWallpaper] = useState<string | null>(() => localStorage.getItem('chat_wallpaper'))
   const [activeNavTab, setActiveNavTab] = useState<'chats' | 'calls' | 'calendar'>('chats')
   const [editName, setEditName] = useState('')
   const [editPhone, setEditPhone] = useState('')
@@ -51,8 +56,15 @@ export function HomePage() {
   const attachMenuRef = useRef<HTMLDivElement>(null)
   const imgFileRef = useRef<HTMLInputElement>(null)
   const docFileRef = useRef<HTMLInputElement>(null)
-  const [toast, setToast] = useState<{ message: string; id: string } | null>(null)
+  const [toast, setToast] = useState<{ message: string; id: string; notificationId?: string } | null>(null)
+  const [missedCallNotifications, setMissedCallNotifications] = useState<Notification[]>([])
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const showCallNotice = useCallback((message: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    setToast({ message, id: `call-${Date.now()}` })
+    toastTimer.current = setTimeout(() => setToast(null), 4000)
+  }, [])
+  const callController = useWebRTCCall(showCallNotice)
 
   const [showContactProfile, setShowContactProfile] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -127,6 +139,27 @@ export function HomePage() {
         const [profile, list] = await Promise.all([chatService.getMyProfile(), chatService.getRooms()])
         setMe(profile)
         setRooms(sortRooms(list))
+
+        callsService.getUnreadMissedCallNotifications().then(notifications => {
+          setMissedCallNotifications(previous => {
+            const byId = new Map(notifications.map(notification => [notification.id, notification]))
+            previous.forEach(notification => byId.set(notification.id, notification))
+            return [...byId.values()]
+          })
+          const missedCall = notifications[0]
+          if (!missedCall) return
+          if (toastTimer.current) clearTimeout(toastTimer.current)
+          setToast({ message: missedCall.message, id: missedCall.id, notificationId: missedCall.id })
+        }).catch(() => {})
+
+        chatService.getMyPreferences().then(preferences => {
+          if (preferences.theme === 'light' || preferences.theme === 'dark') hydrateTheme(preferences.theme)
+          if (typeof preferences.chatWallpaper === 'string' || preferences.chatWallpaper === null) {
+            setChatWallpaper(preferences.chatWallpaper)
+            if (preferences.chatWallpaper) localStorage.setItem('chat_wallpaper', preferences.chatWallpaper)
+            else localStorage.removeItem('chat_wallpaper')
+          }
+        }).catch(() => {})
 
         socketService.connect()
         list.forEach(room => {
@@ -257,10 +290,15 @@ export function HomePage() {
       setTypingUsers(prev => ({ ...prev, [roomId]: (prev[roomId] ?? []).filter(n => n !== userName) }))
     }
 
-    const handleNotification = (n: import('../types/chat').Notification) => {
+    const handleNotification = (n: Notification) => {
       if (toastTimer.current) clearTimeout(toastTimer.current)
-      setToast({ message: n.message, id: n.id })
-      toastTimer.current = setTimeout(() => setToast(null), 4000)
+      if (n.type === 'missed_call') {
+        setMissedCallNotifications(previous => [n, ...previous.filter(notification => notification.id !== n.id)])
+      }
+      setToast({ message: n.message, id: n.id, notificationId: n.id })
+      if (n.type !== 'missed_call') {
+        toastTimer.current = setTimeout(() => setToast(null), 4000)
+      }
     }
 
     socketService.onNewMessage(handleNewMessage)
@@ -281,6 +319,17 @@ export function HomePage() {
       socketService.offNotification(handleNotification)
     }
   }, [])
+
+  const markCallNotificationRead = async (notificationId: string) => {
+    try {
+      await callsService.markNotificationRead(notificationId)
+      setMissedCallNotifications(previous => previous.filter(notification => notification.id !== notificationId))
+      if (toastTimer.current) clearTimeout(toastTimer.current)
+      setToast(current => current?.notificationId === notificationId ? null : current)
+    } catch (error) {
+      showCallNotice(error instanceof Error ? error.message : 'Unable to mark call notification as read.')
+    }
+  }
 
   const loadMore = async () => {
     if (!activeRoom || !nextCursor || loadingMore) return
@@ -436,6 +485,21 @@ export function HomePage() {
     setSavingProfile(false)
   }
 
+  const updateChatWallpaper = async (wallpaper: string | null) => {
+    const previousWallpaper = chatWallpaper
+    setChatWallpaper(wallpaper)
+    if (wallpaper) localStorage.setItem('chat_wallpaper', wallpaper)
+    else localStorage.removeItem('chat_wallpaper')
+    try {
+      await chatService.updateMyPreferences({ chatWallpaper: wallpaper })
+    } catch (error) {
+      setChatWallpaper(previousWallpaper)
+      if (previousWallpaper) localStorage.setItem('chat_wallpaper', previousWallpaper)
+      else localStorage.removeItem('chat_wallpaper')
+      console.error('Unable to save chat wallpaper preference', error)
+    }
+  }
+
   const handleProfileAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -488,6 +552,18 @@ export function HomePage() {
   const curOther = activeRoom && me ? otherUser(activeRoom, me.id) : undefined
   const curName = activeRoom && me ? roomName(activeRoom, me.id) : ''
   const curAvatar = activeRoom && me ? roomAvatar(activeRoom, me.id) : null
+  const callRoom = callController.activeCall
+    ? rooms.find(room => room.id === callController.activeCall?.roomId)
+    : undefined
+  const callName = callRoom && me ? roomName(callRoom, me.id) : 'Synexa call'
+  const callAvatar = callRoom && me ? roomAvatar(callRoom, me.id) : null
+  const startCall = (roomId: string, callType: 'audio' | 'video') => {
+    const room = rooms.find(candidate => candidate.id === roomId)
+    if (!room || room.isGroup) return
+    void callController.startCall(roomId, callType).catch(error => {
+      setToast({ message: error instanceof Error ? error.message : 'Unable to start call.', id: String(Date.now()) })
+    })
+  }
 
   return (
     <div className={`flex h-screen w-full overflow-hidden font-sans bg-gray-50 dark:bg-[#090d16] dark:text-slate-100 transition-colors duration-300 ${!showSidebar && activeRoom ? 'pb-0' : 'pb-[56px] md:pb-0'}`}>
@@ -577,13 +653,29 @@ export function HomePage() {
           send={send}
           attachedFile={attachedFile}
           onRemoveAttachment={() => setAttachedFile(null)}
+          chatWallpaper={chatWallpaper}
+          onWallpaperChange={wallpaper => { void updateChatWallpaper(wallpaper) }}
+          onStartCall={startCall}
+          callNotifications={activeRoom ? missedCallNotifications.filter(notification => notification.roomId === activeRoom.id) : []}
+          onMarkCallNotificationRead={notificationId => { void markCallNotificationRead(notificationId) }}
         />
       </div>
 
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[99999] bg-[#1f2937] text-white px-6 py-3 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.25)] text-[0.9rem] font-medium animate-[toastIn_0.3s_ease-out] max-w-[360px] text-center pointer-events-none">
-          🔔 {toast.message}
-        </div>
+        <button
+          onClick={() => {
+            if (toastTimer.current) clearTimeout(toastTimer.current)
+            setToast(null)
+            if (toast.notificationId) {
+              void markCallNotificationRead(toast.notificationId)
+            }
+          }}
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[99999] bg-[#1f2937] text-white px-5 py-3 rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.25)] text-sm font-medium animate-[toastIn_0.3s_ease-out] max-w-[min(420px,calc(100vw-2rem))] text-left cursor-pointer border-0 flex items-center gap-4"
+          aria-label={toast.notificationId ? 'Mark notification as read' : 'Dismiss call message'}
+        >
+          <span>{toast.message}</span>
+          <span className="shrink-0 text-xs text-red-200">{toast.notificationId ? 'Mark read' : 'Dismiss'}</span>
+        </button>
       )}
 
       <ProfileSidebar
@@ -656,7 +748,27 @@ export function HomePage() {
         onClose={() => setShowCalls(false)}
         me={me}
         rooms={rooms}
+        onStartCall={startCall}
+        missedNotifications={missedCallNotifications}
+        onMarkMissedNotificationRead={markCallNotificationRead}
       />
+
+      {callController.activeCall && (
+        <CallOverlay
+          call={callController.activeCall}
+          curName={callName}
+          curAvatar={callAvatar}
+          localStream={callController.localStream}
+          remoteStream={callController.remoteStream}
+          isMuted={callController.isMuted}
+          isVideoOff={callController.isVideoOff}
+          onAccept={() => { void callController.acceptCall() }}
+          onReject={callController.rejectCall}
+          onToggleMute={callController.toggleMute}
+          onToggleVideo={callController.toggleVideo}
+          onEndCall={callController.endCall}
+        />
+      )}
     </div>
   )
 }

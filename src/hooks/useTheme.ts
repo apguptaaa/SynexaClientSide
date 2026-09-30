@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { api } from '../services/api'
 
 export type ThemeMode = 'light' | 'dark'
 
@@ -20,6 +21,11 @@ function applyThemeToDOM(theme: ThemeMode) {
     root.style.colorScheme = 'light'
   }
   localStorage.setItem('theme', theme)
+}
+
+export function hydrateTheme(theme: ThemeMode) {
+  applyThemeToDOM(theme)
+  window.dispatchEvent(new Event('theme-change'))
 }
 
 export function useTheme() {
@@ -49,6 +55,9 @@ export function useTheme() {
     applyThemeToDOM(newTheme)
     setThemeState(newTheme)
     window.dispatchEvent(new Event('theme-change'))
+    void api.patch('/api/users/me/preferences', { theme: newTheme }).catch(error => {
+      console.error('Unable to save theme preference', error)
+    })
   }
 
   const toggleTheme = () => {

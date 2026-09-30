@@ -1,13 +1,14 @@
 import React from 'react'
 import EmojiPicker from 'emoji-picker-react'
 import type { EmojiClickData } from 'emoji-picker-react'
-import type { Room, Message, User } from '../../types/chat'
+import { PhoneMissed } from 'lucide-react'
+import type { Room, Message, User, Notification } from '../../types/chat'
 import { IcoBack, IcoGroup, IcoMoreVert, IcoEmoji, IcoAttach, IcoSend } from '../common/Icons'
 import { IconBtn } from '../common/IconBtn'
 import { Avatar } from '../common/Avatar'
 import { WelcomeScreen } from './WelcomeScreen'
 import { Bubble } from './Bubble'
-import { CallOverlay } from '../calls/CallOverlay'
+import { chatService } from '../../services/chatService'
 import { seedColor, fmtTime, fmtDateLabel } from '../../utils/chatHelpers'
 
 // Move to helpers if preferred
@@ -60,7 +61,12 @@ export function ChatArea({
   sending,
   send,
   attachedFile,
-  onRemoveAttachment
+  onRemoveAttachment,
+  chatWallpaper,
+  onWallpaperChange,
+  onStartCall,
+  callNotifications,
+  onMarkCallNotificationRead,
 }: {
   activeRoom: Room | null
   me: User | null
@@ -100,38 +106,29 @@ export function ChatArea({
   send: (url?: string, type?: string) => void
   attachedFile?: { name: string; size: number; type: string } | null
   onRemoveAttachment?: () => void
+  chatWallpaper: string | null
+  onWallpaperChange: (wallpaper: string | null) => void
+  onStartCall: (roomId: string, callType: 'audio' | 'video') => void
+  callNotifications: Notification[]
+  onMarkCallNotificationRead: (notificationId: string) => void
 }) {
-  const [wallpaper, setWallpaper] = React.useState<string | null>(
-    localStorage.getItem('chat_wallpaper')
-  )
   const wallpaperInputRef = React.useRef<HTMLInputElement>(null)
 
-  const handleWallpaperChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleWallpaperChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result as string
-      setWallpaper(result)
-      localStorage.setItem('chat_wallpaper', result)
+    try {
+      const uploaded = await chatService.uploadFile(file)
+      onWallpaperChange(uploaded.fileUrl)
+    } catch (error) {
+      console.error('Unable to upload chat wallpaper', error)
     }
-    reader.readAsDataURL(file)
     e.target.value = ''
     setMenuOpen(false)
   }
 
-  const [activeCall, setActiveCall] = React.useState<{ isVideo: boolean } | null>(null)
-
   return (
     <div className="flex-1 flex flex-col h-full min-w-0 bg-white dark:bg-[#0b0f19] font-sans transition-colors duration-300">
-      {activeCall && (
-        <CallOverlay
-          curName={curName}
-          curAvatar={curAvatar}
-          isVideo={activeCall.isVideo}
-          onEndCall={() => setActiveCall(null)}
-        />
-      )}
       {!activeRoom ? <WelcomeScreen /> : (
         <>
           {/* room header */}
@@ -162,10 +159,11 @@ export function ChatArea({
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="hidden sm:flex items-center gap-2">
+              <div className={`hidden sm:flex items-center gap-2 ${activeRoom.isGroup ? 'opacity-40' : ''}`}>
                 <button 
-                  onClick={() => setActiveCall({ isVideo: false })}
-                  className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-red-50 dark:hover:bg-red-900/40 hover:text-[#8c0817] dark:hover:text-red-400 border-none cursor-pointer transition-colors"
+                  onClick={() => onStartCall(activeRoom.id, 'audio')}
+                  disabled={activeRoom.isGroup}
+                  className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-red-50 dark:hover:bg-red-900/40 hover:text-[#8c0817] dark:hover:text-red-400 border-none cursor-pointer transition-colors disabled:cursor-not-allowed"
                   title="Voice Call"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -173,8 +171,9 @@ export function ChatArea({
                   </svg>
                 </button>
                 <button 
-                  onClick={() => setActiveCall({ isVideo: true })}
-                  className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-red-50 dark:hover:bg-red-900/40 hover:text-[#8c0817] dark:hover:text-red-400 border-none cursor-pointer transition-colors"
+                  onClick={() => onStartCall(activeRoom.id, 'video')}
+                  disabled={activeRoom.isGroup}
+                  className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-red-50 dark:hover:bg-red-900/40 hover:text-[#8c0817] dark:hover:text-red-400 border-none cursor-pointer transition-colors disabled:cursor-not-allowed"
                   title="Video Call"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -210,13 +209,12 @@ export function ChatArea({
                     >
                       Change Wallpaper
                     </div>
-                    {wallpaper && (
+                    {chatWallpaper && (
                       <div
                         className="px-4 py-2 cursor-pointer text-[0.9rem] font-medium text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-slate-700/60 transition-colors"
                         onClick={() => {
                           setMenuOpen(false)
-                          setWallpaper(null)
-                          localStorage.removeItem('chat_wallpaper')
+                          onWallpaperChange(null)
                         }}
                       >
                         Remove Wallpaper
@@ -237,8 +235,8 @@ export function ChatArea({
             className="msg-feed flex-1 overflow-y-auto bg-white dark:bg-[#0b0f19] py-4 px-[3%] md:px-[5%] relative" 
             style={{ 
               scrollBehavior: 'smooth',
-              ...(wallpaper ? {
-                backgroundImage: `url(${wallpaper})`,
+              ...(chatWallpaper ? {
+                backgroundImage: `url(${chatWallpaper})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat',
@@ -246,7 +244,7 @@ export function ChatArea({
               } : {})
             }}
           >
-            {wallpaper && <div className="absolute inset-0 bg-white/40 dark:bg-black/60 pointer-events-none -z-10" />}
+            {chatWallpaper && <div className="absolute inset-0 bg-white/40 dark:bg-black/60 pointer-events-none -z-10" />}
             {/* Notice header in chat */}
             <div className="flex justify-center mb-6 mt-2">
               <div className="bg-gray-50 dark:bg-slate-800/80 text-gray-500 dark:text-slate-300 font-medium text-[0.78rem] px-4 py-2 rounded-xl max-w-[90%] text-center flex gap-2 items-center border border-gray-100 dark:border-slate-700/60">
@@ -256,6 +254,30 @@ export function ChatArea({
                 Messages are end-to-end encrypted. No one outside of this chat can read or listen to them.
               </div>
             </div>
+
+            {callNotifications.length > 0 && (
+              <section aria-label="Missed call notifications" className="max-w-2xl mx-auto mb-5 divide-y divide-red-100 dark:divide-red-900/40 rounded-lg border border-red-200 dark:border-red-900/60 bg-red-50/90 dark:bg-red-950/30">
+                {callNotifications.map(notification => (
+                  <div key={notification.id} className="flex items-center gap-3 px-4 py-3">
+                    <span className="w-9 h-9 shrink-0 rounded-full bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 flex items-center justify-center" aria-hidden="true">
+                      <PhoneMissed size={17} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="m-0 text-sm font-semibold text-red-900 dark:text-red-200">{notification.message}</p>
+                      <time dateTime={notification.createdAt} className="mt-1 block text-xs text-red-700/80 dark:text-red-300/80">
+                        {new Date(notification.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                      </time>
+                    </div>
+                    <button
+                      onClick={() => onMarkCallNotificationRead(notification.id)}
+                      className="shrink-0 rounded-md border border-red-200 dark:border-red-800 bg-white/80 dark:bg-red-950/50 px-3 py-1.5 text-xs font-semibold text-red-800 dark:text-red-200 cursor-pointer hover:bg-white dark:hover:bg-red-950"
+                    >
+                      Mark read
+                    </button>
+                  </div>
+                ))}
+              </section>
+            )}
             
             {loadingMore && (
               <div className="text-center p-2.5 text-gray-400 font-medium text-[0.85rem]">

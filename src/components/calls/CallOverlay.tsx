@@ -1,106 +1,136 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react'
+import { Mic, MicOff, Phone, PhoneOff, Video, VideoOff } from 'lucide-react'
+import type { ActiveCall } from '../../hooks/useWebRTCCall'
+import { getCallMediaDevices } from '../../utils/mediaDevicePreferences'
 
 interface CallOverlayProps {
-  curName: string;
-  curAvatar: string | null;
-  isVideo: boolean;
-  onEndCall: () => void;
+  call: ActiveCall
+  curName: string
+  curAvatar: string | null
+  localStream: MediaStream | null
+  remoteStream: MediaStream | null
+  isMuted: boolean
+  isVideoOff: boolean
+  onAccept: () => void
+  onReject: () => void
+  onToggleMute: () => void
+  onToggleVideo: () => void
+  onEndCall: () => void
 }
 
-export function CallOverlay({ curName, curAvatar, isVideo, onEndCall }: CallOverlayProps) {
-  const [status, setStatus] = useState('Calling...');
-  const [duration, setDuration] = useState(0);
+export function CallOverlay({
+  call,
+  curName,
+  curAvatar,
+  localStream,
+  remoteStream,
+  isMuted,
+  isVideoOff,
+  onAccept,
+  onReject,
+  onToggleMute,
+  onToggleVideo,
+  onEndCall,
+}: CallOverlayProps) {
+  const localVideoRef = useRef<HTMLVideoElement>(null)
+  const remoteVideoRef = useRef<HTMLVideoElement>(null)
+  const remoteAudioRef = useRef<HTMLAudioElement>(null)
+  const [duration, setDuration] = useState(0)
+  const incoming = call.status === 'incoming'
+  const connected = call.status === 'connected'
+  const isVideo = call.callType === 'video'
 
   useEffect(() => {
-    // Simulate answering after a few seconds
-    const timer1 = setTimeout(() => setStatus('Ringing...'), 1500);
-    const timer2 = setTimeout(() => {
-      setStatus('Connected');
-    }, 4500);
-
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-    };
-  }, []);
-
-  useEffect(() => {
-    let interval: any;
-    if (status === 'Connected') {
-      interval = setInterval(() => setDuration(d => d + 1), 1000);
+    if (localVideoRef.current) localVideoRef.current.srcObject = localStream
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream
+    if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStream
+    const outputId = getCallMediaDevices().audioOutputId
+    if (outputId) {
+      const mediaElements = [remoteVideoRef.current, remoteAudioRef.current].filter(Boolean)
+      mediaElements.forEach(element => {
+        const outputElement = element as HTMLMediaElement & { setSinkId?: (deviceId: string) => Promise<void> }
+        void outputElement.setSinkId?.(outputId).catch(error => {
+          console.warn('Unable to select call audio output', error)
+        })
+      })
     }
-    return () => clearInterval(interval);
-  }, [status]);
+  }, [localStream, remoteStream])
 
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
+  useEffect(() => {
+    if (!connected) return
+    const timer = window.setInterval(() => setDuration(value => value + 1), 1000)
+    return () => window.clearInterval(timer)
+  }, [connected])
+
+  const status = incoming ? 'Incoming call'
+    : connected ? `${Math.floor(duration / 60)}:${String(duration % 60).padStart(2, '0')}`
+      : call.status === 'ringing' ? 'Ringing...'
+        : call.status === 'connecting' ? 'Connecting...'
+          : call.status === 'failed' ? 'Call failed'
+            : 'Calling...'
 
   return (
-    <div className="fixed inset-0 z-[99999] bg-slate-900/95 backdrop-blur-xl flex flex-col items-center justify-between py-12 animate-[fadeIn_0.3s_ease-out]">
-      {/* Header Info */}
-      <div className="flex flex-col items-center mt-12 animate-[slideDown_0.4s_ease-out]">
-        <h2 className="text-white text-3xl font-bold mb-2">{curName}</h2>
-        <p className="text-slate-300 text-lg font-medium tracking-wide">
-          {status === 'Connected' ? formatTime(duration) : status}
-        </p>
+    <div className="fixed inset-0 z-[99999] bg-slate-950 text-white flex flex-col items-center justify-between p-5 md:p-10">
+      {!isVideo && <audio ref={remoteAudioRef} autoPlay />}
+      <div className="w-full flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="m-0 text-xl md:text-2xl font-bold truncate">{curName}</h2>
+          {call.error
+            ? <p role="alert" className="mt-2 mb-0 max-w-xl rounded-lg border border-red-400/30 bg-red-950/60 px-3 py-2 text-sm text-red-100">{call.error}</p>
+            : <p className="mt-1 mb-0 text-sm text-slate-300">{status}</p>}
+        </div>
+        {isVideo && localStream && (
+          <video
+            ref={localVideoRef}
+            autoPlay
+            muted
+            playsInline
+            className="w-24 h-32 md:w-36 md:h-44 rounded-lg bg-slate-800 object-cover border border-white/20"
+          />
+        )}
       </div>
 
-      {/* Profile Ring */}
-      <div className="relative flex items-center justify-center">
-        {status !== 'Connected' && (
+      <div className="relative flex-1 w-full max-w-5xl min-h-0 flex items-center justify-center py-6">
+        {isVideo && remoteStream ? (
+          <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full rounded-lg bg-slate-900 object-contain" />
+        ) : (
+          <div className="flex flex-col items-center gap-5">
+            <div className="w-36 h-36 md:w-48 md:h-48 rounded-full overflow-hidden border border-white/20 bg-slate-800 flex items-center justify-center">
+              {curAvatar
+                ? <img src={curAvatar} alt={curName} className="w-full h-full object-cover" />
+                : <span className="text-6xl font-bold">{curName.charAt(0).toUpperCase()}</span>}
+            </div>
+            {isVideo && <p className="m-0 text-sm text-slate-300">Waiting for camera...</p>}
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-center gap-4 pb-3">
+        {incoming ? (
           <>
-            <div className="absolute w-[200px] h-[200px] rounded-full border border-white/20 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
-            <div className="absolute w-[260px] h-[260px] rounded-full border border-white/10 animate-[ping_2.5s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
+            <button onClick={onReject} title="Decline call" aria-label="Decline call" className="w-14 h-14 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center border-0 cursor-pointer">
+              <PhoneOff size={22} />
+            </button>
+            <button onClick={onAccept} title="Accept call" aria-label="Accept call" className="w-14 h-14 rounded-full bg-emerald-600 hover:bg-emerald-700 flex items-center justify-center border-0 cursor-pointer">
+              <Phone size={22} />
+            </button>
+          </>
+        ) : (
+          <>
+            <button onClick={onToggleMute} title={isMuted ? 'Unmute microphone' : 'Mute microphone'} aria-label={isMuted ? 'Unmute microphone' : 'Mute microphone'} className={`w-12 h-12 rounded-full flex items-center justify-center border border-white/10 cursor-pointer ${isMuted ? 'bg-white text-slate-900' : 'bg-slate-800 text-white'}`}>
+              {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
+            </button>
+            {isVideo && (
+              <button onClick={onToggleVideo} title={isVideoOff ? 'Turn camera on' : 'Turn camera off'} aria-label={isVideoOff ? 'Turn camera on' : 'Turn camera off'} className={`w-12 h-12 rounded-full flex items-center justify-center border border-white/10 cursor-pointer ${isVideoOff ? 'bg-white text-slate-900' : 'bg-slate-800 text-white'}`}>
+                {isVideoOff ? <VideoOff size={20} /> : <Video size={20} />}
+              </button>
+            )}
+            <button onClick={onEndCall} title="End call" aria-label="End call" className="w-14 h-14 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center border-0 cursor-pointer">
+              <PhoneOff size={22} />
+            </button>
           </>
         )}
-        <div className="relative z-10 w-32 h-32 rounded-full overflow-hidden border-4 border-slate-700 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
-          {curAvatar ? (
-             <img src={curAvatar} alt={curName} className="w-full h-full object-cover" />
-          ) : (
-             <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-5xl font-bold">
-               {curName.charAt(0).toUpperCase()}
-             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="flex items-center gap-6 mb-12 animate-[slideUp_0.4s_ease-out]">
-        <button className="w-14 h-14 rounded-full bg-slate-800/80 hover:bg-slate-700 text-white flex items-center justify-center transition-colors cursor-pointer border border-white/10 shadow-lg backdrop-blur-md">
-          {/* Mute Icon */}
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-            <line x1="12" y1="19" x2="12" y2="23"></line>
-            <line x1="8" y1="23" x2="16" y2="23"></line>
-          </svg>
-        </button>
-        <button className={`w-14 h-14 rounded-full ${isVideo ? 'bg-slate-800/80 hover:bg-slate-700 border-white/10 text-white' : 'bg-red-500/20 text-red-500 hover:bg-red-500/30 border-red-500/30'} flex items-center justify-center transition-colors cursor-pointer border shadow-lg backdrop-blur-md`}>
-          {/* Video Icon */}
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            {isVideo ? (
-              <>
-                <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-              </>
-            ) : (
-              <>
-                <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"></path>
-                <line x1="1" y1="1" x2="23" y2="23"></line>
-              </>
-            )}
-          </svg>
-        </button>
-        <button className="w-16 h-16 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-[0_0_20px_rgba(220,38,38,0.4)] transition-transform hover:scale-105 cursor-pointer border-none" onClick={onEndCall}>
-          {/* End Call Icon (Phone Down) */}
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(135deg)' }}>
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-          </svg>
-        </button>
       </div>
     </div>
-  );
+  )
 }
