@@ -6,10 +6,14 @@ import type {
   CreateRoomPayload,
   UploadResponse,
   Message,
+  UserPreferences,
 } from '../types/chat'
 
 export const chatService = {
   getMyProfile: (): Promise<User> => api.get('/api/users/me'),
+  getMyPreferences: (): Promise<UserPreferences> => api.get('/api/users/me/preferences'),
+  updateMyPreferences: (payload: UserPreferences): Promise<UserPreferences> =>
+    api.patch('/api/users/me/preferences', payload),
   updateMyProfile: (payload: {
     name?: string
     avatarUrl?: string

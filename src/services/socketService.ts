@@ -5,6 +5,25 @@ import { BACKEND_URL } from '../constants/config'
 type TypingPayload = { roomId: string; userId: string; userName: string }
 type SeenPayload = { roomId: string; userId: string; messageIds: string[] }
 type DeliveredPayload = { roomId: string; messageIds: string[] }
+export type CallType = 'audio' | 'video'
+export type CallEndReason = 'rejected' | 'ended' | 'no-answer' | 'disconnected'
+export type CallIncomingPayload = {
+  callId: string
+  roomId: string
+  callType: CallType
+  offer: RTCSessionDescriptionInit
+  fromUserId?: string
+  caller?: { id?: string; name?: string; avatarUrl?: string | null }
+}
+export type CallEventMap = {
+  'call:ringing': { callId: string; roomId?: string }
+  'call:incoming': CallIncomingPayload
+  'call:accepted': { callId?: string; answer: RTCSessionDescriptionInit }
+  'call:ice-candidate': { callId: string; candidate: RTCIceCandidateInit | null }
+  'call:ended': { callId: string; reason: CallEndReason }
+  'call:error': { callId?: string; code?: string; message?: string; error?: string }
+}
+type CallEventName = keyof CallEventMap
 
 class SocketService {
   private socket: Socket | null = null
@@ -15,10 +34,11 @@ class SocketService {
   private seenListeners = new Set<(payload: SeenPayload) => void>()
   private deliveredListeners = new Set<(payload: DeliveredPayload) => void>()
   private notificationListeners = new Set<(n: Notification) => void>()
+  private callListeners = new Map<CallEventName, Set<(payload: CallEventMap[CallEventName]) => void>>()
   private joinedRooms = new Set<string>()
 
   connect() {
-    if (this.socket?.connected) return
+    if (this.socket) return
 
     const token = localStorage.getItem('accessToken')
     if (!token) return
@@ -64,6 +84,40 @@ class SocketService {
     this.socket.on('notification:new', (n: Notification) => {
       this.notificationListeners.forEach(l => l(n))
     })
+
+    const callEvents: CallEventName[] = [
+      'call:ringing',
+      'call:incoming',
+      'call:accepted',
+      'call:ice-candidate',
+      'call:ended',
+      'call:error',
+    ]
+    callEvents.forEach(event => {
+      this.socket?.on(event, (payload: CallEventMap[CallEventName]) => {
+        this.callListeners.get(event)?.forEach(listener => listener(payload))
+      })
+    })
+  }
+
+  waitUntilConnected(timeoutMs = 10000): Promise<void> {
+    if (this.socket?.connected) return Promise.resolve()
+    if (!this.socket) this.connect()
+    const socket = this.socket
+    if (!socket) return Promise.reject(new Error('No access token is available for calls.'))
+
+    return new Promise((resolve, reject) => {
+      const onConnect = () => {
+        clearTimeout(timeout)
+        resolve()
+      }
+      const timeout = setTimeout(() => {
+        socket.off('connect', onConnect)
+        reject(new Error('Could not connect to the call service.'))
+      }, timeoutMs)
+      socket.once('connect', onConnect)
+      if (socket.connected) onConnect()
+    })
   }
 
   disconnect() {
@@ -106,6 +160,10 @@ class SocketService {
     this.socket?.emit('typing:stop', { roomId })
   }
 
+  emitCallEvent(event: 'call:start' | 'call:accept' | 'call:reject' | 'call:ice-candidate' | 'call:end', payload: unknown) {
+    this.socket?.emit(event, payload)
+  }
+
   // ── Listeners: message:new ──
   onNewMessage(callback: (message: Message) => void) { this.messageListeners.add(callback) }
   offNewMessage(callback: (message: Message) => void) { this.messageListeners.delete(callback) }
@@ -131,6 +189,19 @@ class SocketService {
   // ── Listeners: notifications ──
   onNotification(callback: (n: Notification) => void) { this.notificationListeners.add(callback) }
   offNotification(callback: (n: Notification) => void) { this.notificationListeners.delete(callback) }
+
+  onCallEvent<K extends CallEventName>(event: K, callback: (payload: CallEventMap[K]) => void) {
+    let listeners = this.callListeners.get(event)
+    if (!listeners) {
+      listeners = new Set()
+      this.callListeners.set(event, listeners)
+    }
+    listeners.add(callback as (payload: CallEventMap[CallEventName]) => void)
+  }
+
+  offCallEvent<K extends CallEventName>(event: K, callback: (payload: CallEventMap[K]) => void) {
+    this.callListeners.get(event)?.delete(callback as (payload: CallEventMap[CallEventName]) => void)
+  }
 }
 
 export const socketService = new SocketService()

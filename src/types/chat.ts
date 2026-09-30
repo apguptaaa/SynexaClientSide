@@ -12,6 +12,11 @@ export interface User {
   createdAt?: string
 }
 
+export interface UserPreferences {
+  theme?: 'light' | 'dark'
+  chatWallpaper?: string | null
+}
+
 export interface Message {
   id: string
   roomId: string

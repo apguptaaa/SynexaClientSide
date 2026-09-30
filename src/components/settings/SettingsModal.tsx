@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { User } from '../../types/chat'
+import { getCallMediaDevices, saveCallMediaDevice } from '../../utils/mediaDevicePreferences'
 import { Avatar } from '../common/Avatar'
 import { SynexaLogo } from '../common/SynexaLogo'
 import { useTheme } from '../../hooks/useTheme'
+import { Bluetooth } from 'lucide-react'
 
 export function SettingsModal({
   isOpen,
@@ -60,8 +62,60 @@ export function SettingsModal({
   // Audio / Video
   const [noiseSuppression, setNoiseSuppression] = useState<'auto' | 'high' | 'low' | 'off'>('auto')
   const [isTestingAudio, setIsTestingAudio] = useState(false)
+  const [availableDevices, setAvailableDevices] = useState<MediaDeviceInfo[]>([])
+  const [selectedDevices, setSelectedDevices] = useState(getCallMediaDevices)
+  const [deviceMessage, setDeviceMessage] = useState<string | null>(null)
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
   const [updateStatus, setUpdateStatus] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isOpen || !navigator.mediaDevices?.enumerateDevices) return
+    let isCancelled = false
+    const refreshDevices = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        if (!isCancelled) setAvailableDevices(devices)
+      } catch {
+        if (!isCancelled) setDeviceMessage('Unable to list audio and video devices in this browser.')
+      }
+    }
+    const handleDeviceChange = () => { void refreshDevices() }
+    void refreshDevices()
+    navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange)
+    return () => {
+      isCancelled = true
+      navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange)
+    }
+  }, [isOpen])
+
+  const selectDevice = (key: keyof ReturnType<typeof getCallMediaDevices>, value: string) => {
+    setSelectedDevices(previous => ({ ...previous, [key]: value }))
+    saveCallMediaDevice(key, value)
+    setDeviceMessage(null)
+  }
+
+  const chooseAudioOutput = async () => {
+    const mediaDevices = navigator.mediaDevices as MediaDevices & {
+      selectAudioOutput?: () => Promise<MediaDeviceInfo>
+    }
+    if (!mediaDevices.selectAudioOutput) {
+      setDeviceMessage('This browser cannot select call audio output. Choose the Bluetooth headset as the system audio output.')
+      return
+    }
+    try {
+      const device = await mediaDevices.selectAudioOutput()
+      setAvailableDevices(previous => [
+        ...previous.filter(item => item.deviceId !== device.deviceId),
+        device,
+      ])
+      selectDevice('audioOutputId', device.deviceId)
+      setDeviceMessage(`Call audio will use ${device.label || 'the selected output device'}.`)
+    } catch (error) {
+      setDeviceMessage(error instanceof Error && error.name === 'NotAllowedError'
+        ? 'Audio output permission was denied. Allow speaker selection in browser settings.'
+        : 'Could not select an audio output device.')
+    }
+  }
 
   if (!isOpen) return null
 
@@ -218,11 +272,10 @@ export function SettingsModal({
                 {/* Theme Selection */}
                 <div className="space-y-3 border-b border-gray-100 pb-6">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Theme</label>
-                  <div className="grid grid-cols-3 gap-3 max-w-md">
+                  <div className="grid grid-cols-2 gap-3 max-w-md">
                     {[
                       { id: 'light', label: 'Light', desc: 'Default bright style', bg: 'bg-white border-gray-300' },
-                      { id: 'dark', label: 'Dark', desc: 'Easy on the eyes', bg: 'bg-gray-900 text-white border-gray-800' },
-                      { id: 'system', label: 'System', desc: 'Syncs with OS', bg: 'bg-gradient-to-r from-white to-gray-800 border-gray-300' }
+                      { id: 'dark', label: 'Dark', desc: 'Easy on the eyes', bg: 'bg-gray-900 text-white border-gray-800' }
                     ].map((t) => (
                       <div
                         key={t.id}
@@ -605,20 +658,38 @@ export function SettingsModal({
                   {/* Microphone */}
                   <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Microphone</label>
-                    <select className="w-full max-w-md px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 dark:bg-slate-800/80 text-sm font-semibold text-gray-800 dark:text-slate-200 outline-none focus:border-[#8c0817]">
-                      <option>Default - Realtek High Definition Audio (Built-in)</option>
-                      <option>Headset Microphone (Wireless Pro Audio)</option>
+                    <select
+                      value={selectedDevices.audioInputId}
+                      onChange={event => selectDevice('audioInputId', event.target.value)}
+                      className="w-full max-w-md px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 dark:bg-slate-800/80 text-sm font-semibold text-gray-800 dark:text-slate-200 outline-none focus:border-[#8c0817]"
+                    >
+                      <option value="">System default</option>
+                      {availableDevices.filter(device => device.kind === 'audioinput').map((device, index) => (
+                        <option key={device.deviceId} value={device.deviceId}>{device.label || `Microphone ${index + 1}`}</option>
+                      ))}
                     </select>
                   </div>
 
                   {/* Speaker */}
                   <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Speaker / Output</label>
-                    <div className="flex gap-3 max-w-md">
-                      <select className="flex-1 px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 dark:bg-slate-800/80 text-sm font-semibold text-gray-800 dark:text-slate-200 outline-none focus:border-[#8c0817]">
-                        <option>Default - Realtek High Definition Audio</option>
-                        <option>Headphones (Wireless Stereo)</option>
+                    <div className="flex flex-col sm:flex-row gap-3 max-w-md">
+                      <select
+                        value={selectedDevices.audioOutputId}
+                        onChange={event => selectDevice('audioOutputId', event.target.value)}
+                        className="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 dark:bg-slate-800/80 text-sm font-semibold text-gray-800 dark:text-slate-200 outline-none focus:border-[#8c0817]"
+                      >
+                        <option value="">System default</option>
+                        {availableDevices.filter(device => device.kind === 'audiooutput').map((device, index) => (
+                          <option key={device.deviceId} value={device.deviceId}>{device.label || `Speaker ${index + 1}`}</option>
+                        ))}
                       </select>
+                      <button
+                        onClick={() => { void chooseAudioOutput() }}
+                        className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 dark:bg-slate-800/80 text-xs font-bold text-gray-700 dark:text-slate-300 cursor-pointer shadow-sm transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <Bluetooth size={15} /> Choose output
+                      </button>
                       <button
                         onClick={handleTestAudio}
                         className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 dark:bg-slate-800/80 text-xs font-bold text-gray-700 dark:text-slate-300 cursor-pointer shadow-sm transition-all flex items-center gap-1.5"
@@ -635,10 +706,19 @@ export function SettingsModal({
                   {/* Camera */}
                   <div className="space-y-2 border-t border-gray-100 pt-5">
                     <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Camera Device</label>
-                    <select className="w-full max-w-md px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 dark:bg-slate-800/80 text-sm font-semibold text-gray-800 dark:text-slate-200 outline-none focus:border-[#8c0817]">
-                      <option>Integrated HD Webcam (1080p 60fps)</option>
+                    <select
+                      value={selectedDevices.videoInputId}
+                      onChange={event => selectDevice('videoInputId', event.target.value)}
+                      className="w-full max-w-md px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 dark:bg-slate-800/80 text-sm font-semibold text-gray-800 dark:text-slate-200 outline-none focus:border-[#8c0817]"
+                    >
+                      <option value="">System default</option>
+                      {availableDevices.filter(device => device.kind === 'videoinput').map((device, index) => (
+                        <option key={device.deviceId} value={device.deviceId}>{device.label || `Camera ${index + 1}`}</option>
+                      ))}
                     </select>
                   </div>
+
+                  {deviceMessage && <p role="status" className="m-0 text-xs text-gray-600 dark:text-slate-300">{deviceMessage}</p>}
 
                   {/* Noise Suppression */}
                   <div className="space-y-2">
