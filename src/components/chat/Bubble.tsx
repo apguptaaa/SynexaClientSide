@@ -1,4 +1,6 @@
+import { useEffect, useRef, useState } from 'react'
 import type { Message } from '../../types/chat'
+import { Copy, Trash2 } from 'lucide-react'
 import { seedColor, fmtTime } from '../../utils/chatHelpers'
 import { IcoCheckSeen, IcoCheckDelivered, IcoCheckSent } from '../common/Icons'
 import { Avatar } from '../common/Avatar'
@@ -31,7 +33,9 @@ function renderTextWithLinks(text: string, isSelf: boolean) {
   })
 }
 
-export function Bubble({ msg, isSelf, showSender, isLast }: { msg: Message; isSelf: boolean; showSender: boolean; showTail?: boolean; isLast: boolean }) {
+export function Bubble({ msg, isSelf, showSender, isLast, onDelete }: { msg: Message; isSelf: boolean; showSender: boolean; showTail?: boolean; isLast: boolean; onDelete?: (message: Message) => void }) {
+  const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null)
+  const longPressTimer = useRef<number | null>(null)
   const isImg = msg.fileType?.startsWith('image/')
   const isLocation = msg.fileType === 'location' || (msg.fileUrl && msg.fileUrl.includes('maps.google.com')) || (msg.text && (msg.text.includes('maps.google.com') || msg.text.includes('google.com/maps')))
   const locationUrl = msg.fileUrl || (msg.text && (msg.text.includes('maps.google.com') || msg.text.includes('google.com/maps')) ? msg.text : '')
@@ -41,6 +45,34 @@ export function Bubble({ msg, isSelf, showSender, isLast }: { msg: Message; isSe
     ? 'bg-[#8c0817] text-white shadow-[0_2px_8px_rgba(140,8,23,0.2)]' 
     : 'bg-[#f1f5f9] dark:bg-slate-800 text-[#111827] dark:text-slate-100 border border-transparent dark:border-slate-700/60'
   const timeClass = isSelf ? 'text-red-200' : 'text-gray-400 dark:text-slate-400'
+  const hasMessageActions = Boolean(msg.text || (isSelf && onDelete))
+
+  const closeMenu = () => setMenuPosition(null)
+  const openMenu = (x: number, y: number) => {
+    setMenuPosition({
+      x: Math.max(8, Math.min(x, window.innerWidth - 200)),
+      y: Math.max(8, Math.min(y, window.innerHeight - 112)),
+    })
+  }
+  const cancelLongPress = () => {
+    if (longPressTimer.current !== null) window.clearTimeout(longPressTimer.current)
+    longPressTimer.current = null
+  }
+
+  useEffect(() => () => {
+    if (longPressTimer.current !== null) window.clearTimeout(longPressTimer.current)
+  }, [])
+
+  const copyMessage = async () => {
+    if (!msg.text) return
+    try {
+      await navigator.clipboard.writeText(msg.text)
+    } catch {
+      return
+    } finally {
+      closeMenu()
+    }
+  }
 
   return (
     <div className={`flex w-full ${isSelf ? 'justify-end' : 'justify-start'} ${isLast ? 'mb-4' : 'mb-1'}`}>
@@ -56,7 +88,27 @@ export function Bubble({ msg, isSelf, showSender, isLast }: { msg: Message; isSe
         </div>
       )}
 
-      <div className={`relative max-w-[85%] md:max-w-[520px] flex flex-col ${bgClass} ${isSelf ? 'rounded-[16px_4px_16px_16px]' : 'rounded-[4px_16px_16px_16px]'} px-3.5 py-2.5 shadow-sm`}>
+      <div
+        onContextMenu={event => {
+          if (!hasMessageActions) return
+          event.preventDefault()
+          openMenu(event.clientX, event.clientY)
+        }}
+        onTouchStart={event => {
+          if (!hasMessageActions) return
+          const touch = event.touches[0]
+          if (!touch) return
+          cancelLongPress()
+          const { clientX, clientY } = touch
+          longPressTimer.current = window.setTimeout(() => {
+            openMenu(clientX, clientY)
+            longPressTimer.current = null
+          }, 550)
+        }}
+        onTouchMove={cancelLongPress}
+        onTouchEnd={cancelLongPress}
+        className={`relative max-w-[85%] md:max-w-[520px] flex flex-col ${bgClass} ${isSelf ? 'rounded-[16px_4px_16px_16px]' : 'rounded-[4px_16px_16px_16px]'} px-3.5 py-2.5 shadow-sm`}
+      >
         {showSender && !isSelf && (
           <div className="text-[0.78rem] font-bold mb-1" style={{ color: seedColor(msg.sender.name) }}>
             {msg.sender.name}
@@ -133,6 +185,28 @@ export function Bubble({ msg, isSelf, showSender, isLast }: { msg: Message; isSe
               </span>
             )}
           </div>
+
+          {menuPosition && (
+            <>
+              <button type="button" aria-label="Close message actions" className="fixed inset-0 z-[300] cursor-default border-0 bg-transparent" onClick={closeMenu} />
+              <div
+                role="menu"
+                className="fixed z-[301] min-w-[190px] overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-xl dark:border-slate-700 dark:bg-slate-800"
+                style={{ left: menuPosition.x, top: menuPosition.y }}
+              >
+                {msg.text && (
+                  <button type="button" role="menuitem" onClick={() => { void copyMessage() }} className="flex w-full items-center gap-3 border-0 bg-transparent px-4 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-slate-200 dark:hover:bg-slate-700">
+                    <Copy size={16} /> Copy text
+                  </button>
+                )}
+                {isSelf && onDelete && (
+                  <button type="button" role="menuitem" onClick={() => { closeMenu(); onDelete(msg) }} className="flex w-full items-center gap-3 border-0 bg-transparent px-4 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30">
+                    <Trash2 size={16} /> Delete message
+                  </button>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
 

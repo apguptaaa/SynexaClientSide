@@ -5,6 +5,7 @@ import { BACKEND_URL } from '../constants/config'
 type TypingPayload = { roomId: string; userId: string; userName: string }
 type SeenPayload = { roomId: string; userId: string; messageIds: string[] }
 type DeliveredPayload = { roomId: string; messageIds: string[] }
+export type MessageDeletedPayload = { messageId: string; roomId: string }
 export type CallType = 'audio' | 'video'
 export type CallEndReason = 'rejected' | 'ended' | 'no-answer' | 'disconnected'
 export type CallIncomingPayload = {
@@ -33,6 +34,7 @@ class SocketService {
   private typingStopListeners = new Set<(payload: TypingPayload) => void>()
   private seenListeners = new Set<(payload: SeenPayload) => void>()
   private deliveredListeners = new Set<(payload: DeliveredPayload) => void>()
+  private messageDeletedListeners = new Set<(payload: MessageDeletedPayload) => void>()
   private notificationListeners = new Set<(n: Notification) => void>()
   private callListeners = new Map<CallEventName, Set<(payload: CallEventMap[CallEventName]) => void>>()
   private joinedRooms = new Set<string>()
@@ -59,6 +61,10 @@ class SocketService {
 
     this.socket.on('message:new', (message: Message) => {
       this.messageListeners.forEach(l => l(message))
+    })
+
+    this.socket.on('message:delete', (payload: MessageDeletedPayload) => {
+      this.messageDeletedListeners.forEach(listener => listener(payload))
     })
 
     this.socket.on('room_updated', (room: Room) => {
@@ -138,6 +144,10 @@ class SocketService {
     if (this.socket?.connected) this.socket.emit('room:join', roomId)
   }
 
+  forgetRoom(roomId: string) {
+    this.joinedRooms.delete(roomId)
+  }
+
   // ── Messages ──
   sendMessage(roomId: string, text: string | null, fileUrl: string | null, fileType: string | null) {
     this.socket?.emit('message:send', { roomId, text, fileUrl, fileType })
@@ -167,6 +177,9 @@ class SocketService {
   // ── Listeners: message:new ──
   onNewMessage(callback: (message: Message) => void) { this.messageListeners.add(callback) }
   offNewMessage(callback: (message: Message) => void) { this.messageListeners.delete(callback) }
+
+  onMessageDeleted(callback: (payload: MessageDeletedPayload) => void) { this.messageDeletedListeners.add(callback) }
+  offMessageDeleted(callback: (payload: MessageDeletedPayload) => void) { this.messageDeletedListeners.delete(callback) }
 
   // ── Listeners: room updated ──
   onRoomUpdated(callback: (room: Room) => void) { this.roomListeners.add(callback) }

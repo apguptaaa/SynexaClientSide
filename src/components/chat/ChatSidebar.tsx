@@ -1,7 +1,12 @@
+import { useState } from 'react'
 import type { Room, User } from '../../types/chat'
+import { Check, CheckSquare, Square } from 'lucide-react'
+import { IcoMoreVert } from '../common/Icons'
+import { IconBtn } from '../common/IconBtn'
 import { RoomItem } from './RoomItem'
 
 export function ChatSidebar({
+  rooms,
   filteredRooms,
   activeRoom,
   unreadCounts,
@@ -11,8 +16,10 @@ export function ChatSidebar({
   setFilter,
   setModal,
   openRoom,
+  onDeleteRooms,
   me
 }: {
+  rooms: Room[]
   filteredRooms: Room[]
   activeRoom: Room | null
   unreadCounts: Record<string, number>
@@ -22,9 +29,44 @@ export function ChatSidebar({
   setFilter: (f: 'all' | 'direct' | 'groups') => void
   setModal: (show: boolean) => void
   openRoom: (room: Room) => void
+  onDeleteRooms: (rooms: Room[]) => void
   me: User | null
 }) {
+  const [actionsOpen, setActionsOpen] = useState(false)
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedRoomIds, setSelectedRoomIds] = useState<Set<string>>(() => new Set())
   const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0)
+  const selectedRooms = rooms.filter(room => selectedRoomIds.has(room.id))
+  const visibleRoomsSelected = filteredRooms.length > 0 && filteredRooms.every(room => selectedRoomIds.has(room.id))
+
+  const toggleRoomSelection = (roomId: string) => {
+    setSelectedRoomIds(previous => {
+      const next = new Set(previous)
+      if (next.has(roomId)) next.delete(roomId)
+      else next.add(roomId)
+      return next
+    })
+  }
+
+  const toggleVisibleSelection = () => {
+    setSelectedRoomIds(previous => {
+      const next = new Set(previous)
+      if (visibleRoomsSelected) filteredRooms.forEach(room => next.delete(room.id))
+      else filteredRooms.forEach(room => next.add(room.id))
+      return next
+    })
+  }
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false)
+    setSelectedRoomIds(new Set())
+  }
+
+  const deleteSelectedRooms = () => {
+    if (selectedRooms.length === 0) return
+    onDeleteRooms(selectedRooms)
+    exitSelectionMode()
+  }
 
   return (
     <div className="w-full md:max-w-[360px] md:min-w-[300px] flex flex-col bg-[#f4f5fa] dark:bg-[#0f172a] h-full border-r border-gray-200/60 dark:border-slate-800/80 shrink-0 z-10 transition-colors duration-300">
@@ -38,16 +80,53 @@ export function ChatSidebar({
             </span>
           )}
         </div>
-        <button 
-          onClick={() => setModal(true)}
-          className="w-10 h-10 rounded-full bg-[#8c0817] text-white flex items-center justify-center border-none shadow-md cursor-pointer hover:bg-red-800 transition-colors"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setModal(true)}
+            aria-label="Start a new chat"
+            className="w-10 h-10 rounded-full bg-[#8c0817] text-white flex items-center justify-center border-none shadow-md cursor-pointer hover:bg-red-800 transition-colors"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          <div className="relative">
+            {actionsOpen && <button type="button" aria-label="Close chat actions" className="fixed inset-0 z-[199] cursor-default border-0 bg-transparent" onClick={() => setActionsOpen(false)} />}
+            <IconBtn onClick={() => setActionsOpen(open => !open)} title="Chat list actions">
+              <IcoMoreVert />
+            </IconBtn>
+            {actionsOpen && (
+              <div role="menu" className="absolute right-0 top-11 z-[200] w-48 overflow-hidden rounded-xl border border-gray-200 bg-white p-1 shadow-[0_12px_32px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-800">
+                {!selectionMode ? (
+                  <button type="button" role="menuitem" onClick={() => { setActionsOpen(false); setSelectionMode(true) }} className="flex h-10 w-full items-center gap-3 rounded-lg border-0 bg-transparent px-3 text-left text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-700">
+                    <CheckSquare size={17} className="text-gray-500 dark:text-slate-400" /> Select chats
+                  </button>
+                ) : (
+                  <>
+                    <button type="button" role="menuitem" onClick={() => { setActionsOpen(false); toggleVisibleSelection() }} className="flex h-10 w-full items-center gap-3 rounded-lg border-0 bg-transparent px-3 text-left text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-700">
+                      {visibleRoomsSelected ? <Square size={17} className="text-gray-500 dark:text-slate-400" /> : <CheckSquare size={17} className="text-gray-500 dark:text-slate-400" />}
+                      {visibleRoomsSelected ? 'Clear visible' : 'Select visible'}
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => { setActionsOpen(false); exitSelectionMode() }} className="flex h-10 w-full items-center gap-3 rounded-lg border-0 bg-transparent px-3 text-left text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-700">
+                      <span className="w-[17px] text-center text-gray-500 dark:text-slate-400">×</span> Cancel
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+
+      {selectionMode && (
+        <div className="mx-4 mt-1 flex min-h-11 items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-800">
+          <span className="text-xs font-semibold text-gray-600 dark:text-slate-300">{selectedRooms.length} selected</span>
+          <button type="button" onClick={deleteSelectedRooms} disabled={selectedRooms.length === 0} className="inline-flex h-8 items-center gap-1.5 rounded-md border-0 bg-red-700 px-3 text-xs font-bold text-white transition-colors hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-slate-700">
+            <Check size={14} /> Delete{selectedRooms.length > 0 ? ` (${selectedRooms.length})` : ''}
+          </button>
+        </div>
+      )}
 
       {/* search */}
       <div className="px-6 pb-4">
@@ -91,6 +170,9 @@ export function ChatSidebar({
         {filteredRooms.map(r => (
           <RoomItem key={r.id} room={r} myId={me?.id ?? ''}
             active={activeRoom?.id === r.id}
+            selectionMode={selectionMode}
+            selected={selectedRoomIds.has(r.id)}
+            onToggleSelection={() => toggleRoomSelection(r.id)}
             onClick={() => openRoom(r)}
             unreadCount={unreadCounts[r.id] || 0} />
         ))}

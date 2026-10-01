@@ -2,6 +2,7 @@ import React from 'react'
 import EmojiPicker from 'emoji-picker-react'
 import type { EmojiClickData } from 'emoji-picker-react'
 import { PhoneMissed } from 'lucide-react'
+import { ContactRound, Eraser, Image as ImageIcon, ImageOff, Trash2 } from 'lucide-react'
 import type { Room, Message, User, Notification } from '../../types/chat'
 import { IcoBack, IcoGroup, IcoMoreVert, IcoEmoji, IcoAttach, IcoSend } from '../common/Icons'
 import { IconBtn } from '../common/IconBtn'
@@ -40,6 +41,9 @@ export function ChatArea({
   loadMore,
   loadingMsgs,
   messages,
+  onDeleteMessage,
+  onClearMessages,
+  onDeleteRoom,
   typingUsers,
   showNewMsgPill,
   showEmojiPicker,
@@ -84,6 +88,9 @@ export function ChatArea({
   loadMore: () => void
   loadingMsgs: boolean
   messages: Message[]
+  onDeleteMessage: (message: Message) => void
+  onClearMessages: () => void
+  onDeleteRoom: () => void
   typingUsers: Record<string, string[]>
   showNewMsgPill: boolean
   showEmojiPicker: boolean
@@ -190,36 +197,55 @@ export function ChatArea({
                 </IconBtn>
 
                 {menuOpen && (
-                  <div className="absolute top-10 right-0 bg-white dark:bg-slate-800 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.2)] z-[200] py-2 min-w-[160px] border border-gray-100 dark:border-slate-700">
-                    <div
-                      className="px-4 py-2 cursor-pointer text-[0.9rem] font-medium text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/60 transition-colors"
+                  <div role="menu" className="absolute right-0 top-11 z-[200] w-48 overflow-hidden rounded-xl border border-gray-200 bg-white p-1 shadow-[0_12px_32px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-800">
+                    <button type="button" role="menuitem"
                       onClick={() => {
                         setMenuOpen(false)
                         setShowContactProfile(true)
                       }}
+                      className="flex h-10 w-full items-center gap-3 rounded-lg border-0 bg-transparent px-3 text-left text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-700"
                     >
-                      Contact Info
-                    </div>
-                    <div
-                      className="px-4 py-2 cursor-pointer text-[0.9rem] font-medium text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/60 transition-colors"
+                      <ContactRound size={17} className="text-gray-500 dark:text-slate-400" /> Info
+                    </button>
+                    <button type="button" role="menuitem"
                       onClick={() => {
                         setMenuOpen(false)
                         wallpaperInputRef.current?.click()
                       }}
+                      className="flex h-10 w-full items-center gap-3 rounded-lg border-0 bg-transparent px-3 text-left text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-700"
                     >
-                      Change Wallpaper
-                    </div>
+                      <ImageIcon size={17} className="text-gray-500 dark:text-slate-400" /> Wallpaper
+                    </button>
                     {chatWallpaper && (
-                      <div
-                        className="px-4 py-2 cursor-pointer text-[0.9rem] font-medium text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-slate-700/60 transition-colors"
+                      <button type="button" role="menuitem"
                         onClick={() => {
                           setMenuOpen(false)
                           onWallpaperChange(null)
                         }}
+                        className="flex h-10 w-full items-center gap-3 rounded-lg border-0 bg-transparent px-3 text-left text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-700"
                       >
-                        Remove Wallpaper
-                      </div>
+                        <ImageOff size={17} className="text-gray-500 dark:text-slate-400" /> Reset bg
+                      </button>
                     )}
+                    <button type="button" role="menuitem"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        onClearMessages()
+                      }}
+                      className="flex h-10 w-full items-center gap-3 rounded-lg border-0 bg-transparent px-3 text-left text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-700"
+                    >
+                      <Eraser size={17} className="text-gray-500 dark:text-slate-400" /> Clear
+                    </button>
+                    <div className="my-1 border-t border-gray-100 dark:border-slate-700" />
+                    <button type="button" role="menuitem"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        onDeleteRoom()
+                      }}
+                      className="flex h-10 w-full items-center gap-3 rounded-lg border-0 bg-transparent px-3 text-left text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                    >
+                      <Trash2 size={17} /> {activeRoom.isGroup ? 'Leave group' : 'Delete'}
+                    </button>
                   </div>
                 )}
               </div>
@@ -355,7 +381,7 @@ export function ChatArea({
                   const showTail = !prev || prev.senderId !== msg.senderId
                   const isLast = !next || next.senderId !== msg.senderId
                   const showSender = activeRoom.isGroup && !isSelf && showTail
-                  return <Bubble key={msg.id} msg={msg} isSelf={isSelf} showSender={showSender} showTail={showTail} isLast={isLast} />
+                  return <Bubble key={msg.id} msg={msg} isSelf={isSelf} showSender={showSender} showTail={showTail} isLast={isLast} onDelete={onDeleteMessage} />
                 })}
               </div>
             ))}

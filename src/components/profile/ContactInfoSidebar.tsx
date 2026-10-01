@@ -9,7 +9,8 @@ export function ContactInfoSidebar({
   activeRoom,
   curName,
   curAvatar,
-  curOther
+  curOther,
+  onRemoveContact,
 }: {
   showContactProfile: boolean
   setShowContactProfile: (show: boolean) => void
@@ -17,6 +18,7 @@ export function ContactInfoSidebar({
   curName: string
   curAvatar: string | null
   curOther: User | undefined
+  onRemoveContact: () => void
 }) {
   if (!showContactProfile) return null
 
@@ -114,6 +116,15 @@ export function ContactInfoSidebar({
             </svg>
             <span className="text-[0.78rem] text-gray-400 dark:text-slate-400 font-semibold">End-to-end encrypted</span>
           </div>
+          {!activeRoom?.isGroup && curOther && (
+            <button
+              type="button"
+              onClick={onRemoveContact}
+              className="mx-5 mt-6 w-[calc(100%-2.5rem)] rounded-lg border border-red-200 dark:border-red-900/60 bg-white dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-red-700 dark:text-red-300 cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/30"
+            >
+              Remove contact
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -3,8 +3,8 @@ import { roomName, roomAvatar, otherUser, fmtSidebarTime, seedColor } from '../.
 import { Avatar } from '../common/Avatar'
 import { IcoGroup, IcoCheckSeen, IcoCheckDelivered, IcoCheckSent } from '../common/Icons'
 
-export function RoomItem({ room, myId, active, onClick, unreadCount }: {
-  room: Room; myId: string; active: boolean; onClick: () => void; unreadCount?: number
+export function RoomItem({ room, myId, active, onClick, selectionMode, selected, onToggleSelection, unreadCount }: {
+  room: Room; myId: string; active: boolean; onClick: () => void; selectionMode: boolean; selected: boolean; onToggleSelection: () => void; unreadCount?: number
 }) {
   const name = roomName(room, myId)
   const avatar = roomAvatar(room, myId)
@@ -17,13 +17,23 @@ export function RoomItem({ room, myId, active, onClick, unreadCount }: {
 
   return (
     <div 
-      onClick={onClick}
-      className={`flex items-center px-4 py-3 mx-3 my-0.5 cursor-pointer rounded-xl transition-all duration-200 ${
-        active 
+      onClick={() => selectionMode ? onToggleSelection() : onClick()}
+      className={`group flex items-center px-4 py-3 mx-3 my-0.5 cursor-pointer rounded-xl transition-all duration-200 ${
+        selected || active
           ? 'bg-white dark:bg-slate-800 shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-transparent' 
           : 'bg-transparent hover:bg-white/60 dark:hover:bg-slate-800/50 border border-transparent'
       }`}
     >
+      {selectionMode && (
+        <input
+          type="checkbox"
+          checked={selected}
+          aria-label={`Select ${name}`}
+          onClick={event => event.stopPropagation()}
+          onChange={onToggleSelection}
+          className="mr-3 h-4 w-4 shrink-0 cursor-pointer accent-[#8c0817]"
+        />
+      )}
       {room.isGroup ? (
         <div className="w-[46px] h-[46px] rounded-full shrink-0 mr-3 flex items-center justify-center text-white" style={{ background: seedColor(name) }}>
           <IcoGroup />
