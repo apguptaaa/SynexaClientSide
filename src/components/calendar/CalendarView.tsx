@@ -14,12 +14,10 @@ export interface Meeting {
 }
 
 export function CalendarView({
-  onBack,
   me,
   rooms: _rooms,
   onJoinMeeting
 }: {
-  onBack: () => void
   me: User | null
   rooms: Room[]
   onJoinMeeting?: (meeting: Meeting) => void
