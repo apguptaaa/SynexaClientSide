@@ -34,6 +34,12 @@ export const chatService = {
   createRoom: (payload: CreateRoomPayload): Promise<Room> =>
     api.post('/api/rooms', payload),
 
+  deleteRoom: (roomId: string): Promise<void> =>
+    api.delete(`/api/rooms/${encodeURIComponent(roomId)}`),
+
+  clearRoomMessages: (roomId: string): Promise<void> =>
+    api.delete(`/api/rooms/${encodeURIComponent(roomId)}/messages`),
+
   getMessages: (
     roomId: string,
     cursor?: string,
@@ -53,6 +59,9 @@ export const chatService = {
   sendMessage: (roomId: string, text: string | null, fileUrl: string | null, fileType: string | null): Promise<Message> => {
     return api.post(`/api/messages`, { roomId, text, fileUrl, fileType })
   },
+
+  deleteMessage: (messageId: string): Promise<void> =>
+    api.delete(`/api/messages/${encodeURIComponent(messageId)}`),
 
   markSeen: (roomId: string, messageIds: string[]): Promise<void> =>
     api.patch(`/api/messages/${roomId}/seen`, { messageIds }),

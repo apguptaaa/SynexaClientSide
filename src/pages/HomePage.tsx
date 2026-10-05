@@ -11,14 +11,23 @@ import { ProfileSidebar } from '../components/profile/ProfileSidebar'
 import { ContactInfoSidebar } from '../components/profile/ContactInfoSidebar'
 import { CropModal } from '../components/profile/CropModal'
 import { LogoutConfirm } from '../components/common/LogoutConfirm'
+import { ConfirmActionModal } from '../components/common/ConfirmActionModal'
 import { SidebarNav } from '../components/layout/SidebarNav'
-import { SettingsModal } from '../components/settings/SettingsModal'
-import { CalendarModal } from '../components/calendar/CalendarModal'
-import { CallsModal } from '../components/calls/CallsModal'
+import { ProfileView } from '../components/profile/ProfileView'
+import { SettingsView } from '../components/settings/SettingsView'
+import { CalendarView } from '../components/calendar/CalendarView'
+import { CallsView } from '../components/calls/CallsView'
 import { CallOverlay } from '../components/calls/CallOverlay'
 import { useWebRTCCall } from '../hooks/useWebRTCCall'
 import { hydrateTheme } from '../hooks/useTheme'
 import { callsService } from '../services/callsService'
+
+type ConfirmAction = {
+  title: string
+  message: string
+  confirmLabel: string
+  run: () => void | Promise<void>
+}
 
 export function HomePage() {
   const [me, setMe] = useState<User | null>(null)
@@ -39,9 +48,9 @@ export function HomePage() {
   const [showProfile, setShowProfile] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showCalendar, setShowCalendar] = useState(false)
-  const [showCalls, setShowCalls] = useState(false)
+  const [selectedCallRoom, setSelectedCallRoom] = useState<Room | null>(null)
   const [chatWallpaper, setChatWallpaper] = useState<string | null>(() => localStorage.getItem('chat_wallpaper'))
-  const [activeNavTab, setActiveNavTab] = useState<'chats' | 'calls' | 'calendar'>('chats')
+  const [activeNavTab, setActiveNavTab] = useState<'chats' | 'calls' | 'calendar' | 'settings' | 'profile'>('chats')
   const [editName, setEditName] = useState('')
   const [editPhone, setEditPhone] = useState('')
   const [editBio, setEditBio] = useState('')
@@ -80,6 +89,7 @@ export function HomePage() {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
 
   const feedRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -224,6 +234,15 @@ export function HomePage() {
       }
     }
 
+    const handleMessageDeleted = ({ messageId, roomId }: { messageId: string; roomId: string }) => {
+      setMessages(previous => activeRef.current?.id === roomId
+        ? previous.filter(message => message.id !== messageId)
+        : previous)
+      setRooms(previous => previous.map(room => room.id === roomId
+        ? { ...room, messages: room.messages.filter(message => message.id !== messageId) }
+        : room))
+    }
+
     const handleRoomUpdated = (room: Room) => {
       setRooms(prev => {
         const existing = prev.find(r => r.id === room.id);
@@ -302,6 +321,7 @@ export function HomePage() {
     }
 
     socketService.onNewMessage(handleNewMessage)
+    socketService.onMessageDeleted(handleMessageDeleted)
     socketService.onRoomUpdated(handleRoomUpdated)
     socketService.onDelivered(handleDelivered)
     socketService.onSeen(handleSeen)
@@ -311,6 +331,7 @@ export function HomePage() {
 
     return () => {
       socketService.offNewMessage(handleNewMessage)
+      socketService.offMessageDeleted(handleMessageDeleted)
       socketService.offRoomUpdated(handleRoomUpdated)
       socketService.offDelivered(handleDelivered)
       socketService.offSeen(handleSeen)
@@ -347,6 +368,120 @@ export function HomePage() {
   }
 
   const handleScroll = () => { if (feedRef.current && feedRef.current.scrollTop < 80) loadMore() }
+
+  const forgetDeletedRooms = (roomIds: string[]) => {
+    const deletedIds = new Set(roomIds)
+    roomIds.forEach(roomId => socketService.forgetRoom(roomId))
+    setRooms(previous => previous.filter(room => !deletedIds.has(room.id)))
+    setUnreadCounts(previous => Object.fromEntries(Object.entries(previous).filter(([roomId]) => !deletedIds.has(roomId))))
+    if (activeRef.current && deletedIds.has(activeRef.current.id)) {
+      activeRef.current = null
+      setActiveRoom(null)
+      setMessages([])
+      setNextCursor(null)
+      setShowSidebar(true)
+      setShowContactProfile(false)
+    }
+  }
+
+  const deleteRoom = async (room: Room) => {
+    setConfirmAction({
+      title: room.isGroup ? 'Leave this group?' : 'Delete this chat?',
+      message: room.isGroup
+        ? 'You will leave this group and it will be removed from your chat list.'
+        : 'This chat will be removed from your list. Other members keep their chat history.',
+      confirmLabel: room.isGroup ? 'Leave group' : 'Delete chat',
+      run: async () => {
+        try {
+          await chatService.deleteRoom(room.id)
+          forgetDeletedRooms([room.id])
+        } catch (error) {
+          showCallNotice(error instanceof Error ? error.message : 'Unable to delete this chat.')
+        }
+      },
+    })
+  }
+
+  const deleteRooms = (selectedRooms: Room[]) => {
+    if (selectedRooms.length === 0) return
+    setConfirmAction({
+      title: `Delete ${selectedRooms.length} chats?`,
+      message: 'Selected groups will be left. Direct chats will be removed from your list; other members keep their history.',
+      confirmLabel: `Delete ${selectedRooms.length}`,
+      run: async () => {
+        const results = await Promise.allSettled(selectedRooms.map(room => chatService.deleteRoom(room.id)))
+        const removedRoomIds = selectedRooms.filter((_, index) => results[index].status === 'fulfilled').map(room => room.id)
+        forgetDeletedRooms(removedRoomIds)
+        if (results.some(result => result.status === 'rejected')) {
+          showCallNotice('Some chats could not be deleted. Please try again.')
+        }
+      },
+    })
+  }
+
+  const clearRoomMessages = async (room: Room) => {
+    setConfirmAction({
+      title: 'Clear chat messages?',
+      message: 'This removes the messages from your view. Other room members keep their history.',
+      confirmLabel: 'Clear messages',
+      run: async () => {
+        try {
+          await chatService.clearRoomMessages(room.id)
+          setMessages([])
+          setNextCursor(null)
+          setRooms(previous => previous.map(candidate => candidate.id === room.id ? { ...candidate, messages: [] } : candidate))
+        } catch (error) {
+          showCallNotice(error instanceof Error ? error.message : 'Unable to clear chat messages.')
+        }
+      },
+    })
+  }
+
+  const clearActiveRoomMessages = async () => {
+    const room = activeRef.current
+    if (room) await clearRoomMessages(room)
+  }
+
+  const deleteMessage = async (message: Message) => {
+    if (message.senderId !== meRef.current?.id) return
+    setConfirmAction({
+      title: 'Delete this message?',
+      message: 'This message will be deleted for everyone in the room.',
+      confirmLabel: 'Delete message',
+      run: async () => {
+        try {
+          await chatService.deleteMessage(message.id)
+          setMessages(previous => previous.filter(candidate => candidate.id !== message.id))
+          setRooms(previous => previous.map(room => room.id === message.roomId
+            ? { ...room, messages: room.messages.filter(candidate => candidate.id !== message.id) }
+            : room))
+        } catch (error) {
+          showCallNotice(error instanceof Error ? error.message : 'Unable to delete this message.')
+        }
+      },
+    })
+  }
+
+  const removeContact = async () => {
+    const contactId = curOther?.id
+    if (!contactId) return
+    const directRooms = rooms.filter(room => !room.isGroup && room.members.some(member => member.userId === contactId))
+    const contactName = curOther.name
+    setConfirmAction({
+      title: `Remove ${contactName}?`,
+      message: 'This removes your membership from all direct chats with this person. Group chats and their history are not affected.',
+      confirmLabel: 'Remove contact',
+      run: async () => {
+        setShowContactProfile(false)
+        const results = await Promise.allSettled(directRooms.map(room => chatService.deleteRoom(room.id)))
+        const removedRoomIds = directRooms.filter((_, index) => results[index].status === 'fulfilled').map(room => room.id)
+        forgetDeletedRooms(removedRoomIds)
+        if (results.some(result => result.status === 'rejected')) {
+          showCallNotice('Some direct chats could not be removed. Please try again.')
+        }
+      },
+    })
+  }
 
   const send = async (customFileUrl?: string, customFileType?: string) => {
     if (customFileUrl) {
@@ -465,7 +600,14 @@ export function HomePage() {
       setEditAvatarUrl(me.avatarUrl || '')
       setEditPhone(me.phone || me.phoneNumber || '')
       setEditBio(me.bio || '')
-      setShowProfile(true)
+      // Desktop (md+): show modal. Mobile: show full-screen view.
+      if (window.innerWidth >= 768) {
+        setShowProfile(true)
+      } else {
+        setActiveNavTab('profile')
+        setSelectedCallRoom(null)
+        setShowSidebar(false)
+      }
     }
   }
 
@@ -481,6 +623,11 @@ export function HomePage() {
       })
       setMe(updated)
       setShowProfile(false)
+      // If on mobile profile view, go back to chats
+      if (activeNavTab === 'profile') {
+        setActiveNavTab('chats')
+        setShowSidebar(true)
+      }
     } catch { }
     setSavingProfile(false)
   }
@@ -572,30 +719,48 @@ export function HomePage() {
       <SidebarNav
         me={me}
         activeNavTab={activeNavTab}
-        hideMobileNav={!showSidebar && !!activeRoom}
+        hideMobileNav={!showSidebar && !!activeRoom && activeNavTab === 'chats'}
         onChatClick={() => {
           setActiveNavTab('chats')
+          setSelectedCallRoom(null)
           setShowSidebar(true)
         }}
         onCallsClick={() => {
-          setShowCalls(true)
+          setActiveNavTab('calls')
+          setSelectedCallRoom(null)
+          setShowSidebar(false)
         }}
         onCalendarClick={() => {
-          setShowCalendar(true)
+          setActiveNavTab('calendar')
+          setSelectedCallRoom(null)
+          setShowSidebar(false)
         }}
         onSearchClick={() => {
           setModal(true)
         }}
-        onSettingsClick={() => setShowSettings(true)}
+        onSettingsClick={() => {
+          setActiveNavTab('settings')
+          setSelectedCallRoom(null)
+          setShowSidebar(false)
+        }}
         onProfileClick={openProfile}
         onLogout={() => setShowLogoutConfirm(true)}
       />
 
       {/* Chat Sidebar Area */}
-      <div className={`flex shrink-0 w-full md:w-[360px] h-full transition-transform duration-250 ease-in-out z-10 ${!showSidebar ? 'absolute inset-0 -translate-x-full pointer-events-none md:static md:translate-x-0 md:pointer-events-auto' : 'absolute inset-0 md:static md:inset-auto z-30'}`}>
+      <div className={`shrink-0 w-full md:w-[360px] h-full transition-transform duration-250 ease-in-out z-10 ${
+        (activeNavTab === 'calls' && !selectedCallRoom) || activeNavTab === 'calendar' || activeNavTab === 'settings'
+          ? 'hidden'
+          : activeNavTab === 'profile'
+            ? 'hidden md:flex'
+            : !showSidebar
+              ? 'hidden md:flex absolute inset-0 -translate-x-full pointer-events-none md:static md:translate-x-0 md:pointer-events-auto'
+              : 'flex absolute inset-0 md:static md:inset-auto z-30'
+      }`}>
         
         <ChatSidebar
           me={me}
+          rooms={rooms}
           filteredRooms={filteredRooms}
           activeRoom={activeRoom}
           unreadCounts={unreadCounts}
@@ -605,6 +770,7 @@ export function HomePage() {
           setFilter={setFilter}
           setModal={setModal}
           openRoom={openRoom}
+          onDeleteRooms={deleteRooms}
         />
 
         {modal && me && (
@@ -612,53 +778,121 @@ export function HomePage() {
         )}
       </div>
 
-      {/* Main Chat Feed */}
+      {/* Main Chat / Calls / Settings / Calendar / Profile View Feed */}
       <div className="flex flex-1 h-full min-w-0 relative overflow-hidden bg-white dark:bg-[#090d16] shadow-[-4px_0_24px_rgba(0,0,0,0.02)]">
-        <ChatArea
-          activeRoom={activeRoom}
-          me={me}
-          setShowSidebar={setShowSidebar}
-          curName={curName}
-          curAvatar={curAvatar}
-          curOther={curOther}
-          menuOpen={menuOpen}
-          setMenuOpen={setMenuOpen}
-          setShowContactProfile={setShowContactProfile}
-          feedRef={feedRef}
-          handleScroll={handleScroll}
-          loadingMore={loadingMore}
-          nextCursor={nextCursor}
-          loadMore={loadMore}
-          loadingMsgs={loadingMsgs}
-          messages={messages}
-          typingUsers={typingUsers}
-          showNewMsgPill={showNewMsgPill}
-          showEmojiPicker={showEmojiPicker}
-          setShowEmojiPicker={setShowEmojiPicker}
-          emojiPickerRef={emojiPickerRef}
-          showAttachMenu={showAttachMenu}
-          setShowAttachMenu={setShowAttachMenu}
-          attachMenuRef={attachMenuRef}
-          imgFileRef={imgFileRef}
-          docFileRef={docFileRef}
-          fileRef={fileRef}
-          handleFile={handleFile}
-          inputText={inputText}
-          setInputText={setInputText}
-          inputRef={inputRef}
-          handleInputChange={handleInputChange}
-          handleKey={handleKey}
-          sendError={sendError}
-          sending={sending}
-          send={send}
-          attachedFile={attachedFile}
-          onRemoveAttachment={() => setAttachedFile(null)}
-          chatWallpaper={chatWallpaper}
-          onWallpaperChange={wallpaper => { void updateChatWallpaper(wallpaper) }}
-          onStartCall={startCall}
-          callNotifications={activeRoom ? missedCallNotifications.filter(notification => notification.roomId === activeRoom.id) : []}
-          onMarkCallNotificationRead={notificationId => { void markCallNotificationRead(notificationId) }}
-        />
+        {activeNavTab === 'profile' ? (
+          {/* Mobile only: full-screen profile view (desktop uses modal) */}
+          <ProfileView
+            me={me}
+            editName={editName}
+            setEditName={setEditName}
+            editAvatarUrl={editAvatarUrl}
+            editPhone={editPhone}
+            setEditPhone={setEditPhone}
+            editBio={editBio}
+            setEditBio={setEditBio}
+            savingProfile={savingProfile}
+            saveProfile={saveProfile}
+            profileFileRef={profileFileRef}
+            handleProfileAvatarUpload={handleProfileAvatarUpload}
+            uploadingAvatar={uploadingAvatar}
+            onLogout={() => setShowLogoutConfirm(true)}
+          />
+        ) : activeNavTab === 'settings' ? (
+          <SettingsView
+            onBack={() => {
+              setActiveNavTab('chats')
+              setShowSidebar(true)
+            }}
+            me={me}
+            editName={editName}
+            setEditName={setEditName}
+            handleSaveProfile={saveProfile}
+            savingProfile={savingProfile}
+            profileFileRef={profileFileRef}
+            handleProfileAvatarUpload={handleProfileAvatarUpload}
+            uploadingAvatar={uploadingAvatar}
+          />
+        ) : activeNavTab === 'calendar' ? (
+          <CalendarView
+            onBack={() => {
+              setActiveNavTab('chats')
+              setShowSidebar(true)
+            }}
+            me={me}
+            rooms={rooms}
+          />
+        ) : activeNavTab === 'calls' ? (
+          <CallsView
+            me={me}
+            rooms={rooms}
+            filterRoom={selectedCallRoom}
+            onBack={() => {
+              setActiveNavTab('chats')
+              setSelectedCallRoom(null)
+              setShowSidebar(true)
+            }}
+            onStartCall={startCall}
+            onOpenChat={room => {
+              openRoom(room)
+            }}
+            missedNotifications={missedCallNotifications}
+            onMarkMissedNotificationRead={markCallNotificationRead}
+          />
+        ) : (
+          <ChatArea
+            activeRoom={activeRoom}
+            me={me}
+            setShowSidebar={setShowSidebar}
+            curName={curName}
+            curAvatar={curAvatar}
+            curOther={curOther}
+            menuOpen={menuOpen}
+            setMenuOpen={setMenuOpen}
+            setShowContactProfile={setShowContactProfile}
+            feedRef={feedRef}
+            handleScroll={handleScroll}
+            loadingMore={loadingMore}
+            nextCursor={nextCursor}
+            loadMore={loadMore}
+            loadingMsgs={loadingMsgs}
+            messages={messages}
+            onDeleteMessage={message => { void deleteMessage(message) }}
+            onClearMessages={() => { void clearActiveRoomMessages() }}
+            onDeleteRoom={() => { if (activeRoom) void deleteRoom(activeRoom) }}
+            typingUsers={typingUsers}
+            showNewMsgPill={showNewMsgPill}
+            showEmojiPicker={showEmojiPicker}
+            setShowEmojiPicker={setShowEmojiPicker}
+            emojiPickerRef={emojiPickerRef}
+            showAttachMenu={showAttachMenu}
+            setShowAttachMenu={setShowAttachMenu}
+            attachMenuRef={attachMenuRef}
+            imgFileRef={imgFileRef}
+            docFileRef={docFileRef}
+            fileRef={fileRef}
+            handleFile={handleFile}
+            inputText={inputText}
+            setInputText={setInputText}
+            inputRef={inputRef}
+            handleInputChange={handleInputChange}
+            handleKey={handleKey}
+            sendError={sendError}
+            sending={sending}
+            send={send}
+            attachedFile={attachedFile}
+            onRemoveAttachment={() => setAttachedFile(null)}
+            chatWallpaper={chatWallpaper}
+            onWallpaperChange={wallpaper => { void updateChatWallpaper(wallpaper) }}
+            onStartCall={startCall}
+            callNotifications={activeRoom ? missedCallNotifications.filter(notification => notification.roomId === activeRoom.id) : []}
+            onMarkCallNotificationRead={notificationId => { void markCallNotificationRead(notificationId) }}
+            onViewCallHistory={room => {
+              setSelectedCallRoom(room)
+              setActiveNavTab('calls')
+            }}
+          />
+        )}
       </div>
 
       {toast && (
@@ -678,6 +912,7 @@ export function HomePage() {
         </button>
       )}
 
+      {/* Desktop only: Profile Modal */}
       <ProfileSidebar
         showProfile={showProfile}
         setShowProfile={setShowProfile}
@@ -694,6 +929,7 @@ export function HomePage() {
         profileFileRef={profileFileRef}
         handleProfileAvatarUpload={handleProfileAvatarUpload}
         uploadingAvatar={uploadingAvatar}
+        onLogout={() => setShowLogoutConfirm(true)}
       />
 
       <ContactInfoSidebar
@@ -703,6 +939,13 @@ export function HomePage() {
         curName={curName}
         curAvatar={curAvatar}
         curOther={curOther}
+        onRemoveContact={() => { void removeContact() }}
+        onViewCallHistory={() => {
+          if (activeRoom) {
+            setSelectedCallRoom(activeRoom)
+            setActiveNavTab('calls')
+          }
+        }}
       />
 
       <CropModal
@@ -723,34 +966,18 @@ export function HomePage() {
         onLogout={logout}
       />
 
-      <SettingsModal
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        me={me}
-        editName={editName}
-        setEditName={setEditName}
-        handleSaveProfile={saveProfile}
-        savingProfile={savingProfile}
-        profileFileRef={profileFileRef}
-        handleProfileAvatarUpload={handleProfileAvatarUpload}
-        uploadingAvatar={uploadingAvatar}
-      />
-
-      <CalendarModal
-        isOpen={showCalendar}
-        onClose={() => setShowCalendar(false)}
-        me={me}
-        rooms={rooms}
-      />
-
-      <CallsModal
-        isOpen={showCalls}
-        onClose={() => setShowCalls(false)}
-        me={me}
-        rooms={rooms}
-        onStartCall={startCall}
-        missedNotifications={missedCallNotifications}
-        onMarkMissedNotificationRead={markCallNotificationRead}
+      <ConfirmActionModal
+        show={confirmAction !== null}
+        title={confirmAction?.title ?? ''}
+        message={confirmAction?.message ?? ''}
+        confirmLabel={confirmAction?.confirmLabel ?? 'Confirm'}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={async () => {
+          const action = confirmAction
+          if (!action) return
+          await action.run()
+          setConfirmAction(null)
+        }}
       />
 
       {callController.activeCall && (

@@ -121,7 +121,7 @@ export function CalendarModal({
         {/* Header */}
         <div className="h-16 px-4 md:px-6 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#8c0817] to-[#b91c1c] text-white flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2563eb] to-[#1d4ed8] text-white flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                 <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -138,7 +138,7 @@ export function CalendarModal({
           <div className="flex items-center gap-2 md:gap-3">
             <button
               onClick={() => setShowScheduleForm(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#8c0817] text-white text-xs font-bold border-none cursor-pointer hover:bg-red-800 transition-colors shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#2563eb] text-white text-xs font-bold border-none cursor-pointer hover:bg-blue-800 transition-colors shadow-sm"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -167,7 +167,7 @@ export function CalendarModal({
               <span className="text-sm font-bold text-gray-800">
                 {today.toLocaleString('default', { month: 'long', year: 'numeric' })}
               </span>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-[#8c0817]">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-[#2563eb]">
                 Today
               </span>
             </div>
@@ -189,9 +189,9 @@ export function CalendarModal({
                     onClick={() => setSelectedDate(d.isoDate)}
                     className={`h-8 rounded-lg flex flex-col items-center justify-center border-none text-xs font-bold relative cursor-pointer transition-all ${
                       isSelected
-                        ? 'bg-[#8c0817] text-white shadow-sm'
+                        ? 'bg-[#2563eb] text-white shadow-sm'
                         : d.isToday
-                        ? 'bg-red-50 text-[#8c0817]'
+                        ? 'bg-blue-50 text-[#2563eb]'
                         : 'bg-transparent text-gray-700 hover:bg-gray-100'
                     }`}
                   >
@@ -199,7 +199,7 @@ export function CalendarModal({
                     {hasMeeting && (
                       <span
                         className={`w-1 h-1 rounded-full mt-0.5 ${
-                          isSelected ? 'bg-white' : 'bg-[#8c0817]'
+                          isSelected ? 'bg-white' : 'bg-[#2563eb]'
                         }`}
                       ></span>
                     )}
@@ -210,7 +210,7 @@ export function CalendarModal({
 
             {/* Quick Meet Now Button */}
             <div className="mt-auto pt-4 border-t border-gray-100">
-              <div className="p-3.5 rounded-xl bg-gradient-to-r from-red-50 to-orange-50/50 border border-red-100 flex flex-col gap-2">
+              <div className="p-3.5 rounded-xl bg-gradient-to-r from-blue-50 to-orange-50/50 border border-blue-100 flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                   <span className="text-xs font-bold text-gray-800">Instant Video Room</span>
@@ -220,7 +220,7 @@ export function CalendarModal({
                   onClick={() => {
                     handleCopyLink('https://synexa.meet/instant-' + Math.random().toString(36).substring(2, 7))
                   }}
-                  className="mt-1 w-full py-2.5 rounded-xl border-none bg-white hover:bg-gray-50 text-[#8c0817] text-xs font-bold cursor-pointer shadow-sm transition-all border border-red-100 flex items-center justify-center gap-1.5"
+                  className="mt-1 w-full py-2.5 rounded-xl border-none bg-white hover:bg-gray-50 text-[#2563eb] text-xs font-bold cursor-pointer shadow-sm transition-all border border-blue-100 flex items-center justify-center gap-1.5"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <polygon points="23 7 16 12 23 17 23 7"></polygon>
@@ -254,7 +254,7 @@ export function CalendarModal({
                 <p className="text-xs text-gray-400 m-0">You have no events or syncs planned for this date.</p>
                 <button
                   onClick={() => setShowScheduleForm(true)}
-                  className="mt-4 px-4 py-2 rounded-xl bg-[#8c0817] text-white text-xs font-bold border-none cursor-pointer hover:bg-red-800 transition-colors shadow-sm"
+                  className="mt-4 px-4 py-2 rounded-xl bg-[#2563eb] text-white text-xs font-bold border-none cursor-pointer hover:bg-blue-800 transition-colors shadow-sm"
                 >
                   + Schedule Event
                 </button>
@@ -270,8 +270,8 @@ export function CalendarModal({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1.5">
                           {meeting.isLive ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-100 text-[#8c0817] text-[0.7rem] font-extrabold animate-pulse">
-                              <span className="w-2 h-2 rounded-full bg-red-600"></span>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-100 text-[#2563eb] text-[0.7rem] font-extrabold animate-pulse">
+                              <span className="w-2 h-2 rounded-full bg-blue-600"></span>
                               LIVE NOW
                             </span>
                           ) : (
@@ -313,7 +313,7 @@ export function CalendarModal({
                             if (onJoinMeeting) onJoinMeeting(meeting)
                             else window.open(meeting.meetLink, '_blank')
                           }}
-                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#8c0817] to-[#b91c1c] text-white text-xs font-bold border-none cursor-pointer shadow-sm hover:scale-105 transition-transform"
+                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] text-white text-xs font-bold border-none cursor-pointer shadow-sm hover:scale-105 transition-transform"
                         >
                           Join Meeting
                         </button>
@@ -356,7 +356,7 @@ export function CalendarModal({
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     placeholder="e.g., Weekly Team Sync"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm font-medium outline-none focus:border-[#8c0817]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm font-medium outline-none focus:border-[#2563eb]"
                   />
                 </div>
 
@@ -368,7 +368,7 @@ export function CalendarModal({
                     <select
                       value={newTime}
                       onChange={(e) => setNewTime(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs font-semibold outline-none focus:border-[#8c0817] bg-white"
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs font-semibold outline-none focus:border-[#2563eb] bg-white"
                     >
                       <option>09:00 AM</option>
                       <option>10:00 AM</option>
@@ -386,7 +386,7 @@ export function CalendarModal({
                     <select
                       value={newDuration}
                       onChange={(e) => setNewDuration(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs font-semibold outline-none focus:border-[#8c0817] bg-white"
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs font-semibold outline-none focus:border-[#2563eb] bg-white"
                     >
                       <option>15 mins</option>
                       <option>30 mins</option>
@@ -406,7 +406,7 @@ export function CalendarModal({
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 rounded-xl border-none bg-gradient-to-r from-[#8c0817] to-[#b91c1c] text-white text-xs font-extrabold cursor-pointer shadow-sm hover:shadow-md transition-all"
+                    className="flex-1 py-2.5 rounded-xl border-none bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] text-white text-xs font-extrabold cursor-pointer shadow-sm hover:shadow-md transition-all"
                   >
                     Save & Schedule
                   </button>
@@ -428,3 +428,4 @@ export function CalendarModal({
     </div>
   )
 }
+

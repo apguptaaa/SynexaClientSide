@@ -9,7 +9,9 @@ export function ContactInfoSidebar({
   activeRoom,
   curName,
   curAvatar,
-  curOther
+  curOther,
+  onRemoveContact,
+  onViewCallHistory,
 }: {
   showContactProfile: boolean
   setShowContactProfile: (show: boolean) => void
@@ -17,6 +19,8 @@ export function ContactInfoSidebar({
   curName: string
   curAvatar: string | null
   curOther: User | undefined
+  onRemoveContact: () => void
+  onViewCallHistory?: () => void
 }) {
   if (!showContactProfile) return null
 
@@ -56,7 +60,7 @@ export function ContactInfoSidebar({
                   <IcoGroup size={44} />
                 </div>
               ) : (
-                <div className="ring-4 ring-red-100 dark:ring-red-900/50 rounded-full shadow-[0_8px_32px_rgba(140,8,23,0.15)] transition-all duration-300 hover:shadow-[0_12px_40px_rgba(140,8,23,0.25)] hover:ring-red-200">
+                <div className="ring-4 ring-blue-100 dark:ring-blue-900/50 rounded-full shadow-[0_8px_32px_rgba(37,99,235,0.15)] transition-all duration-300 hover:shadow-[0_12px_40px_rgba(37,99,235,0.25)] hover:ring-blue-200">
                   <Avatar name={curName} src={curAvatar} size={120} online={curOther?.isOnline} />
                 </div>
               )}
@@ -92,6 +96,26 @@ export function ContactInfoSidebar({
             </div>
           </div>
 
+          {/* Call History Button */}
+          {onViewCallHistory && activeRoom && (
+            <div className="mx-5 mt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowContactProfile(false)
+                  onViewCallHistory()
+                }}
+                className="w-full h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-[#2563eb] dark:text-blue-400 font-bold text-xs flex items-center justify-center gap-2 border-0 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                View Call History
+              </button>
+            </div>
+          )}
+
           {/* Info Cards */}
           {!activeRoom?.isGroup && curOther?.email && (
             <div className="bg-white dark:bg-[#0f172a] mx-5 mt-4 rounded-2xl px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)] border border-gray-100 dark:border-slate-800">
@@ -114,6 +138,15 @@ export function ContactInfoSidebar({
             </svg>
             <span className="text-[0.78rem] text-gray-400 dark:text-slate-400 font-semibold">End-to-end encrypted</span>
           </div>
+          {!activeRoom?.isGroup && curOther && (
+            <button
+              type="button"
+              onClick={onRemoveContact}
+              className="mx-5 mt-6 w-[calc(100%-2.5rem)] rounded-lg border border-red-200 dark:border-red-900/60 bg-white dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-red-700 dark:text-red-300 cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/30"
+            >
+              Remove contact
+            </button>
+          )}
         </div>
       </div>
     </div>

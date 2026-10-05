@@ -4,22 +4,19 @@ import { getCallMediaDevices, saveCallMediaDevice } from '../../utils/mediaDevic
 import { Avatar } from '../common/Avatar'
 import { SynexaLogo } from '../common/SynexaLogo'
 import { useTheme } from '../../hooks/useTheme'
-import { Bluetooth } from 'lucide-react'
+import { Bluetooth, ArrowLeft } from 'lucide-react'
 
-export function SettingsModal({
-  isOpen,
-  onClose,
+export function SettingsView({
+  onBack,
   me,
   editName,
   setEditName,
   handleSaveProfile,
   savingProfile,
   profileFileRef,
-  handleProfileAvatarUpload: _handleProfileAvatarUpload,
   uploadingAvatar
 }: {
-  isOpen: boolean
-  onClose: () => void
+  onBack: () => void
   me: User | null
   editName: string
   setEditName: (v: string) => void
@@ -32,6 +29,7 @@ export function SettingsModal({
   const [activeTab, setActiveTab] = useState<
     'general' | 'accounts' | 'privacy' | 'notifications' | 'chat' | 'devices' | 'about'
   >('general')
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false)
 
   // Setting States
   const { theme, setTheme } = useTheme()
@@ -57,7 +55,6 @@ export function SettingsModal({
   const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium')
   const [enterToSend, setEnterToSend] = useState(true)
   const [linkPreviews, setLinkPreviews] = useState(true)
-  const [_autoDownloadMedia, _setAutoDownloadMedia] = useState('always')
 
   // Audio / Video
   const [noiseSuppression, setNoiseSuppression] = useState<'auto' | 'high' | 'low' | 'off'>('auto')
@@ -69,7 +66,7 @@ export function SettingsModal({
   const [updateStatus, setUpdateStatus] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isOpen || !navigator.mediaDevices?.enumerateDevices) return
+    if (!navigator.mediaDevices?.enumerateDevices) return
     let isCancelled = false
     const refreshDevices = async () => {
       try {
@@ -86,7 +83,7 @@ export function SettingsModal({
       isCancelled = true
       navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange)
     }
-  }, [isOpen])
+  }, [])
 
   const selectDevice = (key: keyof ReturnType<typeof getCallMediaDevices>, value: string) => {
     setSelectedDevices(previous => ({ ...previous, [key]: value }))
@@ -116,8 +113,6 @@ export function SettingsModal({
         : 'Could not select an audio output device.')
     }
   }
-
-  if (!isOpen) return null
 
   const handleTestAudio = () => {
     setIsTestingAudio(true)
@@ -208,59 +203,87 @@ export function SettingsModal({
     }
   ]
 
+  const activeTabMeta = tabs.find(t => t.id === activeTab) || tabs[0]
+
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center font-sans p-4 animate-[fadeIn_0.2s_ease-out]">
-      {/* Teams-like Dialog Box */}
-      <div className="bg-white dark:bg-[#0f172a] w-full max-w-[860px] h-full md:h-[640px] md:max-h-[90vh] md:rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.35)] flex flex-col overflow-hidden border-0 md:border border-gray-100 dark:border-slate-800">
-        {/* Header */}
-        <div className="h-14 px-6 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-[#0f172a] shrink-0">
+    <div className="flex flex-col h-full w-full bg-white dark:bg-[#090d16] overflow-hidden select-none">
+      {/* Top Header */}
+      <header className="h-16 px-4 md:px-6 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-[#0f172a] shrink-0 z-10 shadow-sm">
+        <div className="flex items-center gap-3">
+          {/* Mobile Back Arrow: Only visible in mobile when viewing detail/subheading settings */}
+          {mobileDetailOpen && (
+            <button
+              onClick={() => setMobileDetailOpen(false)}
+              className="md:hidden p-2 -ml-1 rounded-xl text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors border-0 bg-transparent cursor-pointer flex items-center justify-center"
+              aria-label="Back to settings list"
+            >
+              <ArrowLeft size={20} />
+            </button>
+          )}
+
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-red-950/60 text-[#2563eb] dark:text-red-300 flex items-center justify-center font-bold text-sm border border-blue-100 dark:border-blue-900/40">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            {/* Setting Icon: Hidden on mobile when child detail view is open */}
+            <span className={`${mobileDetailOpen ? 'hidden md:flex' : 'flex'} w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-[#2563eb] dark:text-blue-400 items-center justify-center font-bold`}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="3"></circle>
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
               </svg>
+            </span>
+            <div>
+              <h1 className="m-0 text-base font-bold text-gray-900 dark:text-slate-100">
+                {/* On mobile, show current active section label if detail view is open */}
+                <span className="md:inline hidden">Settings</span>
+                <span className="md:hidden inline">{mobileDetailOpen ? activeTabMeta.label : 'Settings'}</span>
+              </h1>
+              <p className="m-0 mt-0.5 text-xs font-medium text-gray-500 dark:text-slate-400">
+                <span className="md:inline hidden">Application & user preferences</span>
+                <span className="md:hidden inline">{mobileDetailOpen ? 'Settings > ' + activeTabMeta.label : 'Application & user preferences'}</span>
+              </p>
             </div>
-            <span className="text-lg font-bold text-[#1f2937] dark:text-slate-100 tracking-[-0.01em]">Settings</span>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center border-none bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700 hover:text-gray-800 dark:hover:text-slate-100 cursor-pointer transition-colors"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
         </div>
+      </header>
 
-        {/* Main Body: Left Nav + Right Pane */}
-        <div className="flex flex-col md:flex-row flex-1 min-h-0">
-          {/* Left Teams Sidebar List - horizontal scroll on mobile, vertical on desktop */}
-          <div className="md:w-60 bg-[#f8f9fb] dark:bg-[#0b0f19] border-b md:border-b-0 md:border-r border-gray-200/70 dark:border-slate-800 p-2 md:p-3 flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible md:overflow-y-auto shrink-0">
-            {tabs.map((tab) => {
-              const active = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 md:gap-3 px-3 md:px-3.5 py-2 md:py-2.5 rounded-xl border-none text-left cursor-pointer transition-all duration-200 text-[0.82rem] md:text-[0.88rem] font-semibold whitespace-nowrap shrink-0 ${
-                    active
-                      ? 'bg-white dark:bg-slate-800 text-[#2563eb] dark:text-blue-400 shadow-[0_2px_8px_rgba(140,8,23,0.08)] border border-blue-100/60 dark:border-slate-700 font-bold'
-                      : 'text-gray-600 dark:text-slate-300 bg-transparent hover:bg-gray-200/60 dark:hover:bg-slate-800/60 hover:text-gray-900 dark:hover:text-slate-100'
-                  }`}
-                >
-                  <span className={`transition-transform duration-200 ${active ? 'text-[#2563eb] dark:text-blue-400 scale-105' : 'text-gray-400 dark:text-slate-400'}`}>
+      {/* 2-Column Responsive Body */}
+      <div className="flex flex-1 h-full min-h-0 overflow-hidden">
+        {/* Left Settings Tabs List */}
+        <div className={`w-full md:w-64 shrink-0 h-full border-r border-gray-100 dark:border-slate-800 bg-[#f8f9fb] dark:bg-[#0b0f19] p-3 flex flex-col gap-1 overflow-y-auto ${mobileDetailOpen ? 'hidden md:flex' : 'flex'}`}>
+          <div className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500">
+            Navigation
+          </div>
+          {tabs.map((tab) => {
+            const active = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id)
+                  setMobileDetailOpen(true)
+                }}
+                className={`flex items-center justify-between px-3.5 py-3 rounded-xl border-none text-left cursor-pointer transition-all duration-200 text-xs md:text-sm font-semibold ${
+                  active
+                    ? 'bg-white dark:bg-slate-800 text-[#2563eb] dark:text-blue-400 shadow-sm border border-blue-100/60 dark:border-slate-700 font-bold'
+                    : 'text-gray-600 dark:text-slate-300 bg-transparent hover:bg-gray-200/60 dark:hover:bg-slate-800/60 hover:text-gray-900 dark:hover:text-slate-100'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className={active ? 'text-[#2563eb] dark:text-blue-400' : 'text-gray-400 dark:text-slate-400'}>
                     {tab.icon}
                   </span>
                   <span>{tab.label}</span>
-                </button>
-              )
-            })}
-          </div>
+                </div>
+                {/* Mobile disclosure arrow */}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="md:hidden text-gray-400">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            )
+          })}
+        </div>
 
-          {/* Right Content Pane */}
-          <div className="flex-1 overflow-y-auto p-4 md:p-7 bg-white dark:bg-[#0f172a] text-gray-800 dark:text-slate-100">
+        {/* Right Settings Content Details Pane */}
+        <div className={`flex-1 h-full overflow-y-auto p-4 md:p-8 bg-white dark:bg-[#0f172a] text-gray-800 dark:text-slate-100 flex-col ${mobileDetailOpen ? 'flex' : 'hidden md:flex'}`}>
+          <div className="max-w-3xl">
             {/* GENERAL TAB */}
             {activeTab === 'general' && (
               <div className="space-y-7 animate-[fadeIn_0.2s_ease-out]">
@@ -270,7 +293,7 @@ export function SettingsModal({
                 </div>
 
                 {/* Theme Selection */}
-                <div className="space-y-3 border-b border-gray-100 pb-6">
+                <div className="space-y-3 border-b border-gray-100 dark:border-slate-800 pb-6">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Theme</label>
                   <div className="grid grid-cols-2 gap-3 max-w-md">
                     {[
@@ -282,7 +305,7 @@ export function SettingsModal({
                         onClick={() => setTheme(t.id as any)}
                         className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
                           theme === t.id
-                            ? 'border-[#2563eb] dark:border-blue-500 bg-blue-50/30 dark:bg-red-950/30 shadow-sm'
+                            ? 'border-[#2563eb] dark:border-blue-500 bg-blue-50/30 dark:bg-blue-950/30 shadow-sm'
                             : 'border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
                         }`}
                       >
@@ -296,12 +319,12 @@ export function SettingsModal({
                 </div>
 
                 {/* Language */}
-                <div className="space-y-3 border-b border-gray-100 pb-6">
+                <div className="space-y-3 border-b border-gray-100 dark:border-slate-800 pb-6">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-400">App Language</label>
                   <select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="w-full max-w-sm px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 dark:bg-slate-800/80 text-sm font-semibold text-gray-700 dark:text-slate-300 outline-none focus:border-[#2563eb]"
+                    className="w-full max-w-sm px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80 text-sm font-semibold text-gray-700 dark:text-slate-300 outline-none focus:border-[#2563eb]"
                   >
                     <option value="en-US">English (United States)</option>
                     <option value="en-GB">English (United Kingdom)</option>
@@ -367,7 +390,7 @@ export function SettingsModal({
                 </div>
 
                 {/* Profile Card */}
-                <div className="flex items-center gap-5 p-5 rounded-2xl bg-gradient-to-r from-blue-50/50 via-white to-gray-50 border border-blue-100/60 shadow-sm">
+                <div className="flex items-center gap-5 p-5 rounded-2xl bg-gradient-to-r from-blue-50/50 via-white to-gray-50 dark:from-slate-800/60 dark:via-slate-800/40 dark:to-slate-900/60 border border-blue-100/60 dark:border-slate-700 shadow-sm">
                   <div className="relative group">
                     <Avatar name={me?.name || 'User'} src={me?.avatarUrl} size={76} online={me?.isOnline} />
                     {profileFileRef && (
@@ -388,20 +411,20 @@ export function SettingsModal({
                     <p className="text-xs text-gray-500 dark:text-slate-400 font-medium truncate mt-0.5">{me?.email || 'user@synexa.com'}</p>
                     <div className="mt-2.5 flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span className="text-xs font-semibold text-emerald-700">Online & Ready</span>
+                      <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Online & Ready</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Edit Display Name */}
-                <div className="space-y-2 border-b border-gray-100 pb-6">
+                <div className="space-y-2 border-b border-gray-100 dark:border-slate-800 pb-6">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Display Name</label>
                   <div className="flex gap-3 max-w-md">
                     <input
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
                       placeholder="Your full name"
-                      className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 dark:bg-slate-800/80 text-sm font-semibold text-gray-800 dark:text-slate-200 outline-none focus:border-[#2563eb] transition-colors"
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80 text-sm font-semibold text-gray-800 dark:text-slate-200 outline-none focus:border-[#2563eb] transition-colors"
                     />
                     <button
                       onClick={handleSaveProfile}
@@ -414,13 +437,13 @@ export function SettingsModal({
                 </div>
 
                 {/* Status message */}
-                <div className="space-y-2 border-b border-gray-100 pb-6">
+                <div className="space-y-2 border-b border-gray-100 dark:border-slate-800 pb-6">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Status Message</label>
                   <input
                     value={statusMessage}
                     onChange={(e) => setStatusMessage(e.target.value)}
                     placeholder="What are you working on?"
-                    className="w-full max-w-md px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 dark:bg-slate-800/80 text-sm font-medium text-gray-800 dark:text-slate-200 outline-none focus:border-[#2563eb]"
+                    className="w-full max-w-md px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80 text-sm font-medium text-gray-800 dark:text-slate-200 outline-none focus:border-[#2563eb]"
                   />
                 </div>
 
@@ -439,8 +462,8 @@ export function SettingsModal({
                         onClick={() => setStatusState(s.id as any)}
                         className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
                           statusState === s.id
-                            ? 'border-[#2563eb] bg-blue-50/50 text-[#2563eb]'
-                            : 'border-gray-200 bg-gray-50 dark:bg-slate-800/80 text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                            ? 'border-[#2563eb] bg-blue-50/50 dark:bg-blue-900/30 text-[#2563eb] dark:text-blue-400'
+                            : 'border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80 text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
                         }`}
                       >
                         <span className={`w-2.5 h-2.5 rounded-full ${s.dot}`}></span>
@@ -460,7 +483,7 @@ export function SettingsModal({
                   <p className="text-xs text-gray-500 dark:text-slate-400 font-medium">Control who can see your activity and read receipts.</p>
                 </div>
 
-                <div className="space-y-4 border-b border-gray-100 pb-6">
+                <div className="space-y-4 border-b border-gray-100 dark:border-slate-800 pb-6">
                   <label className="flex items-center justify-between p-3.5 rounded-xl bg-gray-50 dark:bg-slate-800/80 hover:bg-gray-100/80 dark:hover:bg-slate-700/80 cursor-pointer transition-colors">
                     <div>
                       <div className="text-sm font-bold text-gray-800 dark:text-slate-200">Read Receipts (Blue Ticks)</div>
@@ -498,7 +521,7 @@ export function SettingsModal({
                         className={`flex-1 py-2.5 rounded-xl border text-xs font-bold capitalize cursor-pointer transition-all ${
                           lastSeenVis === opt
                             ? 'border-[#2563eb] bg-blue-50 text-[#2563eb]'
-                            : 'border-gray-200 bg-gray-50 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                            : 'border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
                         }`}
                       >
                         {opt}
@@ -507,12 +530,12 @@ export function SettingsModal({
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-gray-50 dark:bg-slate-800/80 border border-gray-200/60 flex items-center justify-between">
+                <div className="p-4 rounded-xl bg-gray-50 dark:bg-slate-800/80 border border-gray-200/60 dark:border-slate-700 flex items-center justify-between">
                   <div>
                     <div className="text-sm font-bold text-gray-800 dark:text-slate-200">End-to-End Encryption</div>
                     <div className="text-xs text-gray-400">Your direct messages are protected with 256-bit encryption</div>
                   </div>
-                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[0.72rem]">
+                  <span className="px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 font-extrabold text-[0.72rem]">
                     ACTIVE
                   </span>
                 </div>
@@ -592,7 +615,7 @@ export function SettingsModal({
                 </div>
 
                 {/* Font Size */}
-                <div className="space-y-3 border-b border-gray-100 pb-6">
+                <div className="space-y-3 border-b border-gray-100 dark:border-slate-800 pb-6">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Message Text Size</label>
                   <div className="flex gap-3 max-w-sm">
                     {[
@@ -606,7 +629,7 @@ export function SettingsModal({
                         className={`flex-1 py-2.5 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
                           fontSize === f.id
                             ? 'border-[#2563eb] bg-blue-50 text-[#2563eb]'
-                            : 'border-gray-200 bg-gray-50 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                            : 'border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
                         }`}
                       >
                         {f.label}
@@ -661,7 +684,7 @@ export function SettingsModal({
                     <select
                       value={selectedDevices.audioInputId}
                       onChange={event => selectDevice('audioInputId', event.target.value)}
-                      className="w-full max-w-md px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 dark:bg-slate-800/80 text-sm font-semibold text-gray-800 dark:text-slate-200 outline-none focus:border-[#2563eb]"
+                      className="w-full max-w-md px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80 text-sm font-semibold text-gray-800 dark:text-slate-200 outline-none focus:border-[#2563eb]"
                     >
                       <option value="">System default</option>
                       {availableDevices.filter(device => device.kind === 'audioinput').map((device, index) => (
@@ -677,7 +700,7 @@ export function SettingsModal({
                       <select
                         value={selectedDevices.audioOutputId}
                         onChange={event => selectDevice('audioOutputId', event.target.value)}
-                        className="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 dark:bg-slate-800/80 text-sm font-semibold text-gray-800 dark:text-slate-200 outline-none focus:border-[#2563eb]"
+                        className="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80 text-sm font-semibold text-gray-800 dark:text-slate-200 outline-none focus:border-[#2563eb]"
                       >
                         <option value="">System default</option>
                         {availableDevices.filter(device => device.kind === 'audiooutput').map((device, index) => (
@@ -686,13 +709,13 @@ export function SettingsModal({
                       </select>
                       <button
                         onClick={() => { void chooseAudioOutput() }}
-                        className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 dark:bg-slate-800/80 text-xs font-bold text-gray-700 dark:text-slate-300 cursor-pointer shadow-sm transition-all flex items-center justify-center gap-1.5"
+                        className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white hover:bg-gray-50 dark:bg-slate-800/80 text-xs font-bold text-gray-700 dark:text-slate-300 cursor-pointer shadow-sm transition-all flex items-center justify-center gap-1.5"
                       >
                         <Bluetooth size={15} /> Choose output
                       </button>
                       <button
                         onClick={handleTestAudio}
-                        className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 dark:bg-slate-800/80 text-xs font-bold text-gray-700 dark:text-slate-300 cursor-pointer shadow-sm transition-all flex items-center gap-1.5"
+                        className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white hover:bg-gray-50 dark:bg-slate-800/80 text-xs font-bold text-gray-700 dark:text-slate-300 cursor-pointer shadow-sm transition-all flex items-center gap-1.5"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                           <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
@@ -704,12 +727,12 @@ export function SettingsModal({
                   </div>
 
                   {/* Camera */}
-                  <div className="space-y-2 border-t border-gray-100 pt-5">
+                  <div className="space-y-2 border-t border-gray-100 dark:border-slate-800 pt-5">
                     <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Camera Device</label>
                     <select
                       value={selectedDevices.videoInputId}
                       onChange={event => selectDevice('videoInputId', event.target.value)}
-                      className="w-full max-w-md px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 dark:bg-slate-800/80 text-sm font-semibold text-gray-800 dark:text-slate-200 outline-none focus:border-[#2563eb]"
+                      className="w-full max-w-md px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80 text-sm font-semibold text-gray-800 dark:text-slate-200 outline-none focus:border-[#2563eb]"
                     >
                       <option value="">System default</option>
                       {availableDevices.filter(device => device.kind === 'videoinput').map((device, index) => (
@@ -730,8 +753,8 @@ export function SettingsModal({
                           onClick={() => setNoiseSuppression(lvl)}
                           className={`flex-1 py-2 rounded-xl border text-xs font-bold uppercase cursor-pointer transition-all ${
                             noiseSuppression === lvl
-                              ? 'border-[#2563eb] bg-blue-50 text-[#2563eb]'
-                              : 'border-gray-200 bg-gray-50 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                              ? 'border-[#2563eb] bg-blue-50 dark:bg-blue-900/30 text-[#2563eb] dark:text-blue-400'
+                              : 'border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
                           }`}
                         >
                           {lvl}
@@ -751,7 +774,7 @@ export function SettingsModal({
                   <p className="text-xs text-gray-500 dark:text-slate-400 font-medium">Enterprise communications platform.</p>
                 </div>
 
-                <div className="p-6 rounded-2xl bg-[#fafbfc] border border-gray-200/80 flex flex-col items-center text-center max-w-md mx-auto">
+                <div className="p-6 rounded-2xl bg-[#fafbfc] dark:bg-slate-800/50 border border-gray-200/80 dark:border-slate-700 flex flex-col items-center text-center max-w-md mx-auto">
                   <div className="w-16 h-16 flex items-center justify-center mb-4">
                     <SynexaLogo size={64} variant="color" />
                   </div>
@@ -762,7 +785,7 @@ export function SettingsModal({
                     <button
                       onClick={handleCheckUpdate}
                       disabled={isCheckingUpdate}
-                      className="w-full py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 dark:bg-slate-800/80 text-xs font-extrabold text-gray-800 dark:text-slate-200 cursor-pointer shadow-sm transition-all"
+                      className="w-full py-2.5 rounded-xl border border-gray-300 dark:border-slate-700 bg-white hover:bg-gray-50 dark:bg-slate-800 text-xs font-extrabold text-gray-800 dark:text-slate-200 cursor-pointer shadow-sm transition-all"
                     >
                       {isCheckingUpdate ? 'Checking for updates…' : 'Check for Updates'}
                     </button>
@@ -792,4 +815,3 @@ export function SettingsModal({
     </div>
   )
 }
-

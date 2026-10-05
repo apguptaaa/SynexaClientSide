@@ -1,9 +1,9 @@
-export const SX_RED = '#8c0817'
+export const SX_BLUE = '#2563eb'
 export const SX_SURFACE = '#fff'
 export const SX_BG_PANEL = '#f8f8f8'
 
 export const WA_GREEN = '#25d366'
-export const WA_TEAL = SX_RED
+export const WA_TEAL = SX_BLUE
 export const WA_SELF_BUBBLE = '#dcf8c6'
 export const WA_OTHER_BUBBLE = '#ffffff'
 export const WA_SIDEBAR_BG = '#ffffff'

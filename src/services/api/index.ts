@@ -71,4 +71,12 @@ export const api = {
     })
     return handleResponse<T>(res)
   },
+
+  delete: async <T>(path: string): Promise<T> => {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    })
+    return handleResponse<T>(res)
+  },
 }
