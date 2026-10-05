@@ -31,7 +31,7 @@ export function RoomItem({ room, myId, active, onClick, selectionMode, selected,
           aria-label={`Select ${name}`}
           onClick={event => event.stopPropagation()}
           onChange={onToggleSelection}
-          className="mr-3 h-4 w-4 shrink-0 cursor-pointer accent-[#8c0817]"
+          className="mr-3 h-4 w-4 shrink-0 cursor-pointer accent-[#2563eb]"
         />
       )}
       {room.isGroup ? (
@@ -50,7 +50,7 @@ export function RoomItem({ room, myId, active, onClick, selectionMode, selected,
             {name}
           </span>
           {lastMsg && (
-            <span className={`text-[0.7rem] shrink-0 ml-2 font-medium ${active ? 'text-[#8c0817] dark:text-red-400 font-bold' : 'text-gray-400 dark:text-slate-400'}`}>
+            <span className={`text-[0.7rem] shrink-0 ml-2 font-medium ${active ? 'text-[#2563eb] dark:text-blue-400 font-bold' : 'text-gray-400 dark:text-slate-400'}`}>
               {fmtSidebarTime(lastMsg.createdAt)}
             </span>
           )}
@@ -67,7 +67,7 @@ export function RoomItem({ room, myId, active, onClick, selectionMode, selected,
             {preview || <span>No messages yet</span>}
           </div>
           {(unreadCount ?? 0) > 0 && (
-            <div className="bg-[#8c0817] text-white text-[0.7rem] font-bold rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1.5 shrink-0 shadow-sm">
+            <div className="bg-[#2563eb] text-white text-[0.7rem] font-bold rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1.5 shrink-0">
               {unreadCount}
             </div>
           )}

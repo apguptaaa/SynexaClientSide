@@ -174,9 +174,9 @@ export function LoginPage() {
 
           {/* Clean Dots loader */}
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#8c0817] animate-[bounce_1.4s_infinite_0s]"></span>
-            <span className="w-2.5 h-2.5 rounded-full bg-[#8c0817] animate-[bounce_1.4s_infinite_0.2s]"></span>
-            <span className="w-2.5 h-2.5 rounded-full bg-[#8c0817] animate-[bounce_1.4s_infinite_0.4s]"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb] animate-[bounce_1.4s_infinite_0s]"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb] animate-[bounce_1.4s_infinite_0.2s]"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb] animate-[bounce_1.4s_infinite_0.4s]"></span>
           </div>
         </div>
       </div>
@@ -186,9 +186,9 @@ export function LoginPage() {
   return (
     <div className="min-h-screen w-full flex bg-[#f8f9fc] font-sans">
       {/* Left Brand Panel (Desktop only) */}
-      <div className="hidden lg:flex w-[50%] xl:w-[52%] bg-gradient-to-br from-[#8c0817] via-[#a31222] to-[#680410] text-white relative overflow-hidden flex-col justify-between p-12 select-none">
+      <div className="hidden lg:flex w-[50%] xl:w-[52%] bg-gradient-to-br from-[#2563eb] via-[#a31222] to-[#680410] text-white relative overflow-hidden flex-col justify-between p-12 select-none">
         {/* Background Ambient Glows */}
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-red-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-black/30 rounded-full blur-3xl pointer-events-none"></div>
 
         {/* Top Brand Tag */}
@@ -201,7 +201,7 @@ export function LoginPage() {
 
         {/* Center Hero Mockup & Content */}
         <div className="relative z-10 max-w-lg my-auto py-8">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[0.72rem] font-bold tracking-wider uppercase mb-5 text-red-100">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[0.72rem] font-bold tracking-wider uppercase mb-5 text-blue-100">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             Enterprise Real-time Messaging
           </div>
@@ -210,14 +210,14 @@ export function LoginPage() {
             Connect, collaborate, and chat in real time.
           </h1>
 
-          <p className="text-red-100/80 text-sm xl:text-base font-normal leading-relaxed mb-8 max-w-md">
+          <p className="text-blue-100/80 text-sm xl:text-base font-normal leading-relaxed mb-8 max-w-md">
             The secure unified communication platform designed for fast-moving teams and modern organizations.
           </p>
 
           {/* Interactive Chat Bubble Preview */}
           <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-4 shadow-2xl space-y-3 max-w-sm">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-white text-[#8c0817] font-bold text-xs flex items-center justify-center shadow-sm">
+              <div className="w-8 h-8 rounded-full bg-white text-[#2563eb] font-bold text-xs flex items-center justify-center shadow-sm">
                 SC
               </div>
               <div className="flex-1 min-w-0">
@@ -254,7 +254,7 @@ export function LoginPage() {
           </div>
           <a
             href="/signup"
-            className="text-xs font-bold text-[#8c0817] hover:text-red-900 transition-colors"
+            className="text-xs font-bold text-[#2563eb] hover:text-blue-900 transition-colors"
           >
             Create account →
           </a>
@@ -279,7 +279,7 @@ export function LoginPage() {
             </h2>
             <p className="text-sm text-gray-500 font-medium m-0">
               New to Synexa?{' '}
-              <a href="/signup" className="text-[#8c0817] font-bold hover:text-red-900 transition-colors">
+              <a href="/signup" className="text-[#2563eb] font-bold hover:text-blue-900 transition-colors">
                 Create an account
               </a>
             </p>
@@ -308,8 +308,8 @@ export function LoginPage() {
 
           {/* Error Alert */}
           {error && (
-            <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="shrink-0 text-red-600">
+            <div className="mb-5 p-3.5 rounded-xl bg-blue-50 border border-red-200 text-blue-700 text-xs font-semibold flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="shrink-0 text-blue-600">
                 <circle cx="12" cy="12" r="10" />
                 <line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -335,7 +335,7 @@ export function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@company.com"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#8c0817] focus:ring-4 focus:ring-red-50 transition-all bg-[#fafbfc]"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#2563eb] focus:ring-4 focus:ring-blue-50 transition-all bg-[#fafbfc]"
                 />
               </div>
             </div>
@@ -357,7 +357,7 @@ export function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full pl-10 pr-11 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#8c0817] focus:ring-4 focus:ring-red-50 transition-all bg-[#fafbfc]"
+                  className="w-full pl-10 pr-11 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#2563eb] focus:ring-4 focus:ring-blue-50 transition-all bg-[#fafbfc]"
                 />
                 <button
                   type="button"
@@ -384,7 +384,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-xl border-none bg-gradient-to-r from-[#8c0817] to-[#b91c1c] text-white font-bold text-sm cursor-pointer shadow-[0_6px_20px_rgba(140,8,23,0.35)] hover:shadow-[0_8px_24px_rgba(140,8,23,0.45)] hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+              className="w-full py-3.5 rounded-xl border-none bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] text-white font-bold text-sm cursor-pointer shadow-[0_6px_20px_rgba(140,8,23,0.35)] hover: hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
             >
               {loading ? (
                 <>

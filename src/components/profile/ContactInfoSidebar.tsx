@@ -11,6 +11,7 @@ export function ContactInfoSidebar({
   curAvatar,
   curOther,
   onRemoveContact,
+  onViewCallHistory,
 }: {
   showContactProfile: boolean
   setShowContactProfile: (show: boolean) => void
@@ -19,6 +20,7 @@ export function ContactInfoSidebar({
   curAvatar: string | null
   curOther: User | undefined
   onRemoveContact: () => void
+  onViewCallHistory?: () => void
 }) {
   if (!showContactProfile) return null
 
@@ -58,7 +60,7 @@ export function ContactInfoSidebar({
                   <IcoGroup size={44} />
                 </div>
               ) : (
-                <div className="ring-4 ring-red-100 dark:ring-red-900/50 rounded-full shadow-[0_8px_32px_rgba(140,8,23,0.15)] transition-all duration-300 hover:shadow-[0_12px_40px_rgba(140,8,23,0.25)] hover:ring-red-200">
+                <div className="ring-4 ring-blue-100 dark:ring-blue-900/50 rounded-full shadow-[0_8px_32px_rgba(37,99,235,0.15)] transition-all duration-300 hover:shadow-[0_12px_40px_rgba(37,99,235,0.25)] hover:ring-blue-200">
                   <Avatar name={curName} src={curAvatar} size={120} online={curOther?.isOnline} />
                 </div>
               )}
@@ -93,6 +95,26 @@ export function ContactInfoSidebar({
                   : 'Offline'}
             </div>
           </div>
+
+          {/* Call History Button */}
+          {onViewCallHistory && activeRoom && (
+            <div className="mx-5 mt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowContactProfile(false)
+                  onViewCallHistory()
+                }}
+                className="w-full h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-[#2563eb] dark:text-blue-400 font-bold text-xs flex items-center justify-center gap-2 border-0 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                View Call History
+              </button>
+            </div>
+          )}
 
           {/* Info Cards */}
           {!activeRoom?.isGroup && curOther?.email && (

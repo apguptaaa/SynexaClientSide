@@ -3,5 +3,6 @@ type ErrorMessageProps = {
 }
 
 export function ErrorMessage({ message }: ErrorMessageProps) {
-  return <div style={{ color: '#b91c1c', fontWeight: 600 }}>{message}</div>
+  return <div style={{ color: '#1d4ed8', fontWeight: 600 }}>{message}</div>
 }
+

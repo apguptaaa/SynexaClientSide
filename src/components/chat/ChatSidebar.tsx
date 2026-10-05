@@ -84,9 +84,9 @@ export function ChatSidebar({
           <button
             onClick={() => setModal(true)}
             aria-label="Start a new chat"
-            className="w-10 h-10 rounded-full bg-[#8c0817] text-white flex items-center justify-center border-none shadow-md cursor-pointer hover:bg-red-800 transition-colors"
+            className="w-8 h-8 rounded-lg bg-[#2563eb] text-white flex items-center justify-center border-none cursor-pointer hover:bg-[#1d4ed8] transition-colors"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
@@ -122,7 +122,7 @@ export function ChatSidebar({
       {selectionMode && (
         <div className="mx-4 mt-1 flex min-h-11 items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-800">
           <span className="text-xs font-semibold text-gray-600 dark:text-slate-300">{selectedRooms.length} selected</span>
-          <button type="button" onClick={deleteSelectedRooms} disabled={selectedRooms.length === 0} className="inline-flex h-8 items-center gap-1.5 rounded-md border-0 bg-red-700 px-3 text-xs font-bold text-white transition-colors hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-slate-700">
+          <button type="button" onClick={deleteSelectedRooms} disabled={selectedRooms.length === 0} className="inline-flex h-7 items-center gap-1.5 rounded-md border-0 bg-red-600 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-slate-700">
             <Check size={14} /> Delete{selectedRooms.length > 0 ? ` (${selectedRooms.length})` : ''}
           </button>
         </div>
@@ -149,7 +149,7 @@ export function ChatSidebar({
       {/* filters */}
       <div className="flex px-6 py-2 gap-2">
         {(['all', 'direct', 'groups'] as const).map(f => (
-          <button key={f} onClick={() => setFilter(f)} className={`px-4 py-1.5 rounded-full border-none cursor-pointer font-bold text-[0.8rem] transition-all duration-150 ${filter === f ? 'bg-[#8c0817] text-white shadow-sm' : 'bg-transparent text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800'}`}>
+          <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1 rounded-full border-none cursor-pointer font-semibold text-[0.78rem] transition-all duration-150 ${filter === f ? 'bg-[#2563eb] text-white' : 'bg-transparent text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800'}`}>
             {f === 'all' ? 'All' : f === 'direct' ? 'Direct' : 'Groups'}
           </button>
         ))}
@@ -162,7 +162,7 @@ export function ChatSidebar({
             <div className="text-[0.95rem] mb-3">
               {sidebarQ ? 'No results found' : 'No conversations yet'}
             </div>
-            <button onClick={() => setModal(true)} className="px-5 py-2.5 bg-gray-100 dark:bg-slate-800 rounded-xl text-[#8c0817] dark:text-red-400 font-bold cursor-pointer border-none hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors">
+            <button onClick={() => setModal(true)} className="px-4 py-2 bg-gray-100 dark:bg-slate-800 rounded-lg text-[#2563eb] dark:text-blue-400 font-semibold cursor-pointer border-none hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors text-[0.83rem]">
               Start a new chat
             </button>
           </div>

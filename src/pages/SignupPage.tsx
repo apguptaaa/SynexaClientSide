@@ -150,8 +150,8 @@ export function SignupPage() {
   return (
     <div className="min-h-screen w-full flex bg-[#f8f9fc] font-sans">
       {/* Left Brand Panel (Desktop only) */}
-      <div className="hidden lg:flex w-[50%] xl:w-[52%] bg-gradient-to-br from-[#8c0817] via-[#a31222] to-[#680410] text-white relative overflow-hidden flex-col justify-between p-12 select-none">
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-red-500/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="hidden lg:flex w-[50%] xl:w-[52%] bg-gradient-to-br from-[#2563eb] via-[#a31222] to-[#680410] text-white relative overflow-hidden flex-col justify-between p-12 select-none">
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-black/30 rounded-full blur-3xl pointer-events-none"></div>
 
         {/* Top Brand Tag */}
@@ -164,7 +164,7 @@ export function SignupPage() {
 
         {/* Center Hero Content */}
         <div className="relative z-10 max-w-lg my-auto py-8">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[0.72rem] font-bold tracking-wider uppercase mb-5 text-red-100">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[0.72rem] font-bold tracking-wider uppercase mb-5 text-blue-100">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             Join thousands of teams
           </div>
@@ -173,7 +173,7 @@ export function SignupPage() {
             Build your team workspace in seconds.
           </h1>
 
-          <p className="text-red-100/80 text-sm xl:text-base font-normal leading-relaxed mb-8 max-w-md">
+          <p className="text-blue-100/80 text-sm xl:text-base font-normal leading-relaxed mb-8 max-w-md">
             Direct messaging, channels, video meetings, and encrypted file sharing all in one seamless application.
           </p>
 
@@ -212,7 +212,7 @@ export function SignupPage() {
           </div>
           <a
             href="/login"
-            className="text-xs font-bold text-[#8c0817] hover:text-red-900 transition-colors"
+            className="text-xs font-bold text-[#2563eb] hover:text-blue-900 transition-colors"
           >
             Sign in →
           </a>
@@ -236,7 +236,7 @@ export function SignupPage() {
             </h2>
             <p className="text-sm text-gray-500 font-medium m-0">
               Already have an account?{' '}
-              <a href="/login" className="text-[#8c0817] font-bold hover:text-red-900 transition-colors">
+              <a href="/login" className="text-[#2563eb] font-bold hover:text-blue-900 transition-colors">
                 Sign in
               </a>
             </p>
@@ -262,8 +262,8 @@ export function SignupPage() {
           </div>
 
           {error && (
-            <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="shrink-0 text-red-600">
+            <div className="mb-5 p-3.5 rounded-xl bg-blue-50 border border-red-200 text-blue-700 text-xs font-semibold flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="shrink-0 text-blue-600">
                 <circle cx="12" cy="12" r="10" />
                 <line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -288,7 +288,7 @@ export function SignupPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Alex Morgan"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#8c0817] focus:ring-4 focus:ring-red-50 transition-all bg-[#fafbfc]"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#2563eb] focus:ring-4 focus:ring-blue-50 transition-all bg-[#fafbfc]"
                 />
               </div>
             </div>
@@ -308,7 +308,7 @@ export function SignupPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@company.com"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#8c0817] focus:ring-4 focus:ring-red-50 transition-all bg-[#fafbfc]"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#2563eb] focus:ring-4 focus:ring-blue-50 transition-all bg-[#fafbfc]"
                 />
               </div>
             </div>
@@ -328,7 +328,7 @@ export function SignupPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Create strong password"
-                  className="w-full pl-10 pr-11 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#8c0817] focus:ring-4 focus:ring-red-50 transition-all bg-[#fafbfc]"
+                  className="w-full pl-10 pr-11 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#2563eb] focus:ring-4 focus:ring-blue-50 transition-all bg-[#fafbfc]"
                 />
                 <button
                   type="button"
@@ -365,7 +365,7 @@ export function SignupPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Re-enter password"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#8c0817] focus:ring-4 focus:ring-red-50 transition-all bg-[#fafbfc]"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#2563eb] focus:ring-4 focus:ring-blue-50 transition-all bg-[#fafbfc]"
                 />
               </div>
             </div>
@@ -374,7 +374,7 @@ export function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-xl border-none bg-gradient-to-r from-[#8c0817] to-[#b91c1c] text-white font-bold text-sm cursor-pointer shadow-[0_6px_20px_rgba(140,8,23,0.35)] hover:shadow-[0_8px_24px_rgba(140,8,23,0.45)] hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+              className="w-full py-3.5 rounded-xl border-none bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] text-white font-bold text-sm cursor-pointer shadow-[0_6px_20px_rgba(140,8,23,0.35)] hover: hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
             >
               {loading ? (
                 <>
@@ -401,3 +401,4 @@ export function SignupPage() {
     </div>
   )
 }
+

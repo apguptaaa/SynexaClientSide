@@ -83,11 +83,11 @@
   }
 
   .sidebar-link.active {
-    @apply bg-red-50 text-red-700 shadow-sm dark:bg-red-900/20 dark:text-red-500 dark:shadow-none border-l-[3px] border-red-600 rounded-l-sm;
+    @apply bg-blue-50 text-blue-700 shadow-sm dark:bg-blue-900/20 dark:text-blue-500 dark:shadow-none border-l-[3px] border-blue-600 rounded-l-sm;
   }
 
   .sidebar-link.active svg {
-    @apply text-red-600 dark:text-red-500;
+    @apply text-blue-600 dark:text-blue-500;
   }
 
   .main-layout {
@@ -201,7 +201,7 @@
 }
 
 .room-item.active {
-  background: rgba(140, 8, 23, 0.07);
+  background: rgba(37, 99, 235, 0.07);
 }
 
 .room-item.active::before {
@@ -211,7 +211,7 @@
   top: 0;
   bottom: 0;
   width: 3px;
-  background: #8c0817;
+  background: #2563eb;
   border-radius: 0 2px 2px 0;
 }
 

@@ -13,9 +13,10 @@ import { CropModal } from '../components/profile/CropModal'
 import { LogoutConfirm } from '../components/common/LogoutConfirm'
 import { ConfirmActionModal } from '../components/common/ConfirmActionModal'
 import { SidebarNav } from '../components/layout/SidebarNav'
-import { SettingsModal } from '../components/settings/SettingsModal'
-import { CalendarModal } from '../components/calendar/CalendarModal'
-import { CallsModal } from '../components/calls/CallsModal'
+import { ProfileView } from '../components/profile/ProfileView'
+import { SettingsView } from '../components/settings/SettingsView'
+import { CalendarView } from '../components/calendar/CalendarView'
+import { CallsView } from '../components/calls/CallsView'
 import { CallOverlay } from '../components/calls/CallOverlay'
 import { useWebRTCCall } from '../hooks/useWebRTCCall'
 import { hydrateTheme } from '../hooks/useTheme'
@@ -47,9 +48,9 @@ export function HomePage() {
   const [showProfile, setShowProfile] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showCalendar, setShowCalendar] = useState(false)
-  const [showCalls, setShowCalls] = useState(false)
+  const [selectedCallRoom, setSelectedCallRoom] = useState<Room | null>(null)
   const [chatWallpaper, setChatWallpaper] = useState<string | null>(() => localStorage.getItem('chat_wallpaper'))
-  const [activeNavTab, setActiveNavTab] = useState<'chats' | 'calls' | 'calendar'>('chats')
+  const [activeNavTab, setActiveNavTab] = useState<'chats' | 'calls' | 'calendar' | 'settings' | 'profile'>('chats')
   const [editName, setEditName] = useState('')
   const [editPhone, setEditPhone] = useState('')
   const [editBio, setEditBio] = useState('')
@@ -599,7 +600,14 @@ export function HomePage() {
       setEditAvatarUrl(me.avatarUrl || '')
       setEditPhone(me.phone || me.phoneNumber || '')
       setEditBio(me.bio || '')
-      setShowProfile(true)
+      // Desktop (md+): show modal. Mobile: show full-screen view.
+      if (window.innerWidth >= 768) {
+        setShowProfile(true)
+      } else {
+        setActiveNavTab('profile')
+        setSelectedCallRoom(null)
+        setShowSidebar(false)
+      }
     }
   }
 
@@ -615,6 +623,11 @@ export function HomePage() {
       })
       setMe(updated)
       setShowProfile(false)
+      // If on mobile profile view, go back to chats
+      if (activeNavTab === 'profile') {
+        setActiveNavTab('chats')
+        setShowSidebar(true)
+      }
     } catch { }
     setSavingProfile(false)
   }
@@ -706,27 +719,44 @@ export function HomePage() {
       <SidebarNav
         me={me}
         activeNavTab={activeNavTab}
-        hideMobileNav={!showSidebar && !!activeRoom}
+        hideMobileNav={!showSidebar && !!activeRoom && activeNavTab === 'chats'}
         onChatClick={() => {
           setActiveNavTab('chats')
+          setSelectedCallRoom(null)
           setShowSidebar(true)
         }}
         onCallsClick={() => {
-          setShowCalls(true)
+          setActiveNavTab('calls')
+          setSelectedCallRoom(null)
+          setShowSidebar(false)
         }}
         onCalendarClick={() => {
-          setShowCalendar(true)
+          setActiveNavTab('calendar')
+          setSelectedCallRoom(null)
+          setShowSidebar(false)
         }}
         onSearchClick={() => {
           setModal(true)
         }}
-        onSettingsClick={() => setShowSettings(true)}
+        onSettingsClick={() => {
+          setActiveNavTab('settings')
+          setSelectedCallRoom(null)
+          setShowSidebar(false)
+        }}
         onProfileClick={openProfile}
         onLogout={() => setShowLogoutConfirm(true)}
       />
 
       {/* Chat Sidebar Area */}
-      <div className={`flex shrink-0 w-full md:w-[360px] h-full transition-transform duration-250 ease-in-out z-10 ${!showSidebar ? 'absolute inset-0 -translate-x-full pointer-events-none md:static md:translate-x-0 md:pointer-events-auto' : 'absolute inset-0 md:static md:inset-auto z-30'}`}>
+      <div className={`shrink-0 w-full md:w-[360px] h-full transition-transform duration-250 ease-in-out z-10 ${
+        (activeNavTab === 'calls' && !selectedCallRoom) || activeNavTab === 'calendar' || activeNavTab === 'settings'
+          ? 'hidden'
+          : activeNavTab === 'profile'
+            ? 'hidden md:flex'
+            : !showSidebar
+              ? 'hidden md:flex absolute inset-0 -translate-x-full pointer-events-none md:static md:translate-x-0 md:pointer-events-auto'
+              : 'flex absolute inset-0 md:static md:inset-auto z-30'
+      }`}>
         
         <ChatSidebar
           me={me}
@@ -748,56 +778,121 @@ export function HomePage() {
         )}
       </div>
 
-      {/* Main Chat Feed */}
+      {/* Main Chat / Calls / Settings / Calendar / Profile View Feed */}
       <div className="flex flex-1 h-full min-w-0 relative overflow-hidden bg-white dark:bg-[#090d16] shadow-[-4px_0_24px_rgba(0,0,0,0.02)]">
-        <ChatArea
-          activeRoom={activeRoom}
-          me={me}
-          setShowSidebar={setShowSidebar}
-          curName={curName}
-          curAvatar={curAvatar}
-          curOther={curOther}
-          menuOpen={menuOpen}
-          setMenuOpen={setMenuOpen}
-          setShowContactProfile={setShowContactProfile}
-          feedRef={feedRef}
-          handleScroll={handleScroll}
-          loadingMore={loadingMore}
-          nextCursor={nextCursor}
-          loadMore={loadMore}
-          loadingMsgs={loadingMsgs}
-          messages={messages}
-          onDeleteMessage={message => { void deleteMessage(message) }}
-          onClearMessages={() => { void clearActiveRoomMessages() }}
-          onDeleteRoom={() => { if (activeRoom) void deleteRoom(activeRoom) }}
-          typingUsers={typingUsers}
-          showNewMsgPill={showNewMsgPill}
-          showEmojiPicker={showEmojiPicker}
-          setShowEmojiPicker={setShowEmojiPicker}
-          emojiPickerRef={emojiPickerRef}
-          showAttachMenu={showAttachMenu}
-          setShowAttachMenu={setShowAttachMenu}
-          attachMenuRef={attachMenuRef}
-          imgFileRef={imgFileRef}
-          docFileRef={docFileRef}
-          fileRef={fileRef}
-          handleFile={handleFile}
-          inputText={inputText}
-          setInputText={setInputText}
-          inputRef={inputRef}
-          handleInputChange={handleInputChange}
-          handleKey={handleKey}
-          sendError={sendError}
-          sending={sending}
-          send={send}
-          attachedFile={attachedFile}
-          onRemoveAttachment={() => setAttachedFile(null)}
-          chatWallpaper={chatWallpaper}
-          onWallpaperChange={wallpaper => { void updateChatWallpaper(wallpaper) }}
-          onStartCall={startCall}
-          callNotifications={activeRoom ? missedCallNotifications.filter(notification => notification.roomId === activeRoom.id) : []}
-          onMarkCallNotificationRead={notificationId => { void markCallNotificationRead(notificationId) }}
-        />
+        {activeNavTab === 'profile' ? (
+          {/* Mobile only: full-screen profile view (desktop uses modal) */}
+          <ProfileView
+            me={me}
+            editName={editName}
+            setEditName={setEditName}
+            editAvatarUrl={editAvatarUrl}
+            editPhone={editPhone}
+            setEditPhone={setEditPhone}
+            editBio={editBio}
+            setEditBio={setEditBio}
+            savingProfile={savingProfile}
+            saveProfile={saveProfile}
+            profileFileRef={profileFileRef}
+            handleProfileAvatarUpload={handleProfileAvatarUpload}
+            uploadingAvatar={uploadingAvatar}
+            onLogout={() => setShowLogoutConfirm(true)}
+          />
+        ) : activeNavTab === 'settings' ? (
+          <SettingsView
+            onBack={() => {
+              setActiveNavTab('chats')
+              setShowSidebar(true)
+            }}
+            me={me}
+            editName={editName}
+            setEditName={setEditName}
+            handleSaveProfile={saveProfile}
+            savingProfile={savingProfile}
+            profileFileRef={profileFileRef}
+            handleProfileAvatarUpload={handleProfileAvatarUpload}
+            uploadingAvatar={uploadingAvatar}
+          />
+        ) : activeNavTab === 'calendar' ? (
+          <CalendarView
+            onBack={() => {
+              setActiveNavTab('chats')
+              setShowSidebar(true)
+            }}
+            me={me}
+            rooms={rooms}
+          />
+        ) : activeNavTab === 'calls' ? (
+          <CallsView
+            me={me}
+            rooms={rooms}
+            filterRoom={selectedCallRoom}
+            onBack={() => {
+              setActiveNavTab('chats')
+              setSelectedCallRoom(null)
+              setShowSidebar(true)
+            }}
+            onStartCall={startCall}
+            onOpenChat={room => {
+              openRoom(room)
+            }}
+            missedNotifications={missedCallNotifications}
+            onMarkMissedNotificationRead={markCallNotificationRead}
+          />
+        ) : (
+          <ChatArea
+            activeRoom={activeRoom}
+            me={me}
+            setShowSidebar={setShowSidebar}
+            curName={curName}
+            curAvatar={curAvatar}
+            curOther={curOther}
+            menuOpen={menuOpen}
+            setMenuOpen={setMenuOpen}
+            setShowContactProfile={setShowContactProfile}
+            feedRef={feedRef}
+            handleScroll={handleScroll}
+            loadingMore={loadingMore}
+            nextCursor={nextCursor}
+            loadMore={loadMore}
+            loadingMsgs={loadingMsgs}
+            messages={messages}
+            onDeleteMessage={message => { void deleteMessage(message) }}
+            onClearMessages={() => { void clearActiveRoomMessages() }}
+            onDeleteRoom={() => { if (activeRoom) void deleteRoom(activeRoom) }}
+            typingUsers={typingUsers}
+            showNewMsgPill={showNewMsgPill}
+            showEmojiPicker={showEmojiPicker}
+            setShowEmojiPicker={setShowEmojiPicker}
+            emojiPickerRef={emojiPickerRef}
+            showAttachMenu={showAttachMenu}
+            setShowAttachMenu={setShowAttachMenu}
+            attachMenuRef={attachMenuRef}
+            imgFileRef={imgFileRef}
+            docFileRef={docFileRef}
+            fileRef={fileRef}
+            handleFile={handleFile}
+            inputText={inputText}
+            setInputText={setInputText}
+            inputRef={inputRef}
+            handleInputChange={handleInputChange}
+            handleKey={handleKey}
+            sendError={sendError}
+            sending={sending}
+            send={send}
+            attachedFile={attachedFile}
+            onRemoveAttachment={() => setAttachedFile(null)}
+            chatWallpaper={chatWallpaper}
+            onWallpaperChange={wallpaper => { void updateChatWallpaper(wallpaper) }}
+            onStartCall={startCall}
+            callNotifications={activeRoom ? missedCallNotifications.filter(notification => notification.roomId === activeRoom.id) : []}
+            onMarkCallNotificationRead={notificationId => { void markCallNotificationRead(notificationId) }}
+            onViewCallHistory={room => {
+              setSelectedCallRoom(room)
+              setActiveNavTab('calls')
+            }}
+          />
+        )}
       </div>
 
       {toast && (
@@ -817,6 +912,7 @@ export function HomePage() {
         </button>
       )}
 
+      {/* Desktop only: Profile Modal */}
       <ProfileSidebar
         showProfile={showProfile}
         setShowProfile={setShowProfile}
@@ -833,6 +929,7 @@ export function HomePage() {
         profileFileRef={profileFileRef}
         handleProfileAvatarUpload={handleProfileAvatarUpload}
         uploadingAvatar={uploadingAvatar}
+        onLogout={() => setShowLogoutConfirm(true)}
       />
 
       <ContactInfoSidebar
@@ -843,6 +940,12 @@ export function HomePage() {
         curAvatar={curAvatar}
         curOther={curOther}
         onRemoveContact={() => { void removeContact() }}
+        onViewCallHistory={() => {
+          if (activeRoom) {
+            setSelectedCallRoom(activeRoom)
+            setActiveNavTab('calls')
+          }
+        }}
       />
 
       <CropModal
@@ -875,36 +978,6 @@ export function HomePage() {
           await action.run()
           setConfirmAction(null)
         }}
-      />
-
-      <SettingsModal
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        me={me}
-        editName={editName}
-        setEditName={setEditName}
-        handleSaveProfile={saveProfile}
-        savingProfile={savingProfile}
-        profileFileRef={profileFileRef}
-        handleProfileAvatarUpload={handleProfileAvatarUpload}
-        uploadingAvatar={uploadingAvatar}
-      />
-
-      <CalendarModal
-        isOpen={showCalendar}
-        onClose={() => setShowCalendar(false)}
-        me={me}
-        rooms={rooms}
-      />
-
-      <CallsModal
-        isOpen={showCalls}
-        onClose={() => setShowCalls(false)}
-        me={me}
-        rooms={rooms}
-        onStartCall={startCall}
-        missedNotifications={missedCallNotifications}
-        onMarkMissedNotificationRead={markCallNotificationRead}
       />
 
       {callController.activeCall && (

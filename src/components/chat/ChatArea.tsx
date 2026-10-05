@@ -1,7 +1,7 @@
 import React from 'react'
 import EmojiPicker from 'emoji-picker-react'
 import type { EmojiClickData } from 'emoji-picker-react'
-import { PhoneMissed } from 'lucide-react'
+import { PhoneMissed, History, PhoneCall } from 'lucide-react'
 import { ContactRound, Eraser, Image as ImageIcon, ImageOff, Trash2 } from 'lucide-react'
 import type { Room, Message, User, Notification } from '../../types/chat'
 import { IcoBack, IcoGroup, IcoMoreVert, IcoEmoji, IcoAttach, IcoSend } from '../common/Icons'
@@ -71,6 +71,7 @@ export function ChatArea({
   onStartCall,
   callNotifications,
   onMarkCallNotificationRead,
+  onViewCallHistory,
 }: {
   activeRoom: Room | null
   me: User | null
@@ -118,8 +119,10 @@ export function ChatArea({
   onStartCall: (roomId: string, callType: 'audio' | 'video') => void
   callNotifications: Notification[]
   onMarkCallNotificationRead: (notificationId: string) => void
+  onViewCallHistory?: (room: Room) => void
 }) {
   const wallpaperInputRef = React.useRef<HTMLInputElement>(null)
+  const [callDropdownOpen, setCallDropdownOpen] = React.useState(false)
 
   const handleWallpaperChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -165,12 +168,13 @@ export function ChatArea({
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
+              {/* Desktop calling buttons */}
               <div className={`hidden sm:flex items-center gap-2 ${activeRoom.isGroup ? 'opacity-40' : ''}`}>
                 <button 
                   onClick={() => onStartCall(activeRoom.id, 'audio')}
                   disabled={activeRoom.isGroup}
-                  className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-red-50 dark:hover:bg-red-900/40 hover:text-[#8c0817] dark:hover:text-red-400 border-none cursor-pointer transition-colors disabled:cursor-not-allowed"
+                  className="w-9 h-9 rounded-lg flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-[#2563eb] dark:hover:text-blue-400 border-none cursor-pointer transition-colors disabled:cursor-not-allowed"
                   title="Voice Call"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -180,7 +184,7 @@ export function ChatArea({
                 <button 
                   onClick={() => onStartCall(activeRoom.id, 'video')}
                   disabled={activeRoom.isGroup}
-                  className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-red-50 dark:hover:bg-red-900/40 hover:text-[#8c0817] dark:hover:text-red-400 border-none cursor-pointer transition-colors disabled:cursor-not-allowed"
+                  className="w-9 h-9 rounded-lg flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-[#2563eb] dark:hover:text-blue-400 border-none cursor-pointer transition-colors disabled:cursor-not-allowed"
                   title="Video Call"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -188,7 +192,68 @@ export function ChatArea({
                     <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                   </svg>
                 </button>
+                <button
+                  onClick={() => onViewCallHistory?.(activeRoom)}
+                  disabled={activeRoom.isGroup}
+                  className="w-9 h-9 rounded-lg flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-[#2563eb] dark:hover:text-blue-400 border-none cursor-pointer transition-colors disabled:cursor-not-allowed"
+                  title="Call History"
+                >
+                  <History size={18} />
+                </button>
               </div>
+
+              {/* Mobile Phone Calling Button with Voice/Video Dropdown */}
+              {!activeRoom.isGroup && (
+                <div className="relative sm:hidden">
+                  {callDropdownOpen && (
+                    <div className="fixed inset-0 z-[199]" onClick={() => setCallDropdownOpen(false)} />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setCallDropdownOpen(!callDropdownOpen)}
+                    className="w-9 h-9 rounded-lg flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-[#2563eb] dark:hover:text-blue-400 border-none cursor-pointer transition-colors"
+                    title="Start Call"
+                    aria-label="Start Call"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                    </svg>
+                  </button>
+
+                  {callDropdownOpen && (
+                    <div className="absolute right-0 top-11 z-[200] w-44 overflow-hidden rounded-xl border border-gray-200 bg-white p-1.5 shadow-[0_12px_32px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-800 animate-[fadeIn_0.15s_ease-out]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCallDropdownOpen(false)
+                          onStartCall(activeRoom.id, 'audio')
+                        }}
+                        className="flex h-10 w-full items-center gap-3 rounded-lg border-0 bg-transparent px-3 text-left text-sm font-semibold text-gray-700 transition-colors hover:bg-blue-50 hover:text-[#2563eb] dark:text-slate-200 dark:hover:bg-slate-700 dark:hover:text-blue-400 cursor-pointer"
+                      >
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500">
+                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                        Voice Call
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCallDropdownOpen(false)
+                          onStartCall(activeRoom.id, 'video')
+                        }}
+                        className="flex h-10 w-full items-center gap-3 rounded-lg border-0 bg-transparent px-3 text-left text-sm font-semibold text-gray-700 transition-colors hover:bg-blue-50 hover:text-[#2563eb] dark:text-slate-200 dark:hover:bg-slate-700 dark:hover:text-blue-400 cursor-pointer"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+                          <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                          <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                        </svg>
+                        Video Call
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               
               <div className="relative">
                 {menuOpen && <div className="fixed inset-0 z-[199]" onClick={() => setMenuOpen(false)} />}
@@ -207,6 +272,17 @@ export function ChatArea({
                     >
                       <ContactRound size={17} className="text-gray-500 dark:text-slate-400" /> Info
                     </button>
+                    {!activeRoom.isGroup && (
+                      <button type="button" role="menuitem"
+                        onClick={() => {
+                          setMenuOpen(false)
+                          onViewCallHistory?.(activeRoom)
+                        }}
+                        className="flex h-10 w-full items-center gap-3 rounded-lg border-0 bg-transparent px-3 text-left text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-700"
+                      >
+                        <PhoneCall size={17} className="text-gray-500 dark:text-slate-400" /> Call History
+                      </button>
+                    )}
                     <button type="button" role="menuitem"
                       onClick={() => {
                         setMenuOpen(false)
@@ -412,7 +488,7 @@ export function ChatArea({
           {attachedFile && (
             <div className="mx-3 md:mx-6 mb-2 p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-md flex items-center justify-between animate-scale-in">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8c0817] to-[#b91c1c] text-white flex items-center justify-center shrink-0 shadow-sm font-extrabold text-[0.72rem] tracking-wider uppercase">
+                <div className="w-10 h-10 rounded-xl bg-[#2563eb] text-white flex items-center justify-center shrink-0 font-bold text-[0.72rem] tracking-wider uppercase">
                   {attachedFile.name.endsWith('.pdf') || attachedFile.type.includes('pdf') ? 'PDF' : attachedFile.type.includes('image') ? 'IMG' : 'DOC'}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -533,7 +609,7 @@ export function ChatArea({
               title="Send" 
               onClick={() => send()} 
               disabled={sending || (!inputText.trim() && !attachedFile)}
-              className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-[#8c0817] text-white flex items-center justify-center border-none shrink-0 cursor-pointer shadow-md hover:bg-red-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-[#2563eb] text-white flex items-center justify-center border-none shrink-0 cursor-pointer hover:bg-[#1d4ed8] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <IcoSend color="white" />
             </button>

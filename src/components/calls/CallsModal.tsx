@@ -98,7 +98,7 @@ export function CallsModal({
       <section className="w-full h-full md:h-[min(680px,90vh)] md:max-w-3xl bg-white dark:bg-[#0f172a] md:rounded-xl border border-gray-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden">
         <header className="h-16 px-5 flex items-center justify-between border-b border-gray-200 dark:border-slate-800 shrink-0">
           <div className="flex items-center gap-3">
-            <span className="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-950/40 text-[#8c0817] dark:text-red-400 flex items-center justify-center">
+            <span className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-red-950/40 text-[#2563eb] dark:text-blue-400 flex items-center justify-center">
               <Phone size={18} />
             </span>
             <div>
@@ -119,7 +119,7 @@ export function CallsModal({
             <button
               key={tab.id}
               onClick={() => tab.id === 'history' ? showHistory() : setActiveTab('contacts')}
-              className={`h-full px-1 border-0 border-b-2 bg-transparent text-xs font-bold cursor-pointer ${activeTab === tab.id ? 'border-[#8c0817] text-[#8c0817] dark:border-red-400 dark:text-red-400' : 'border-transparent text-gray-500 dark:text-slate-400'}`}
+              className={`h-full px-1 border-0 border-b-2 bg-transparent text-xs font-bold cursor-pointer ${activeTab === tab.id ? 'border-[#2563eb] text-[#2563eb] dark:border-blue-400 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-slate-400'}`}
             >
               {tab.label}
             </button>
@@ -140,10 +140,10 @@ export function CallsModal({
                         <div className="text-sm font-bold text-gray-900 dark:text-slate-100 truncate">{name}</div>
                         <div className="mt-0.5 text-xs text-gray-500 dark:text-slate-400">{contact?.isOnline ? 'Online' : 'Direct chat'}</div>
                       </div>
-                      <button onClick={() => startCall(room.id, 'audio')} title={`Audio call ${name}`} aria-label={`Audio call ${name}`} className="w-9 h-9 rounded-lg border-0 bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center cursor-pointer hover:bg-red-100 dark:hover:bg-red-950/50 hover:text-[#8c0817] dark:hover:text-red-400">
+                      <button onClick={() => startCall(room.id, 'audio')} title={`Audio call ${name}`} aria-label={`Audio call ${name}`} className="w-9 h-9 rounded-lg border-0 bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center cursor-pointer hover:bg-blue-100 dark:hover:bg-red-950/50 hover:text-[#2563eb] dark:hover:text-blue-400">
                         <Phone size={16} />
                       </button>
-                      <button onClick={() => startCall(room.id, 'video')} title={`Video call ${name}`} aria-label={`Video call ${name}`} className="w-9 h-9 rounded-lg border-0 bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center cursor-pointer hover:bg-red-100 dark:hover:bg-red-950/50 hover:text-[#8c0817] dark:hover:text-red-400">
+                      <button onClick={() => startCall(room.id, 'video')} title={`Video call ${name}`} aria-label={`Video call ${name}`} className="w-9 h-9 rounded-lg border-0 bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center cursor-pointer hover:bg-blue-100 dark:hover:bg-red-950/50 hover:text-[#2563eb] dark:hover:text-blue-400">
                         <Video size={17} />
                       </button>
                     </div>
@@ -165,7 +165,7 @@ export function CallsModal({
                   <div className="divide-y divide-gray-200 dark:divide-slate-800">
                     {missedNotifications.map(notification => (
                       <div key={notification.id} className="flex items-center gap-3 py-3">
-                        <Phone size={16} className="shrink-0 text-red-600 dark:text-red-400" />
+                        <Phone size={16} className="shrink-0 text-blue-600 dark:text-blue-400" />
                         <div className="min-w-0 flex-1">
                           <p className="m-0 text-sm text-gray-800 dark:text-slate-200">{notification.message}</p>
                           <p className="m-0 mt-1 text-xs text-gray-500 dark:text-slate-400">
@@ -189,14 +189,14 @@ export function CallsModal({
                   <button
                     key={filter}
                     onClick={() => selectHistoryFilter(filter)}
-                    className={`px-3 py-1.5 rounded-md border text-xs font-semibold capitalize cursor-pointer ${historyFilter === filter ? 'border-[#8c0817] bg-red-50 text-[#8c0817] dark:bg-red-950/40 dark:text-red-300' : 'border-gray-200 bg-white text-gray-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}
+                    className={`px-3 py-1.5 rounded-md border text-xs font-semibold capitalize cursor-pointer ${historyFilter === filter ? 'border-[#2563eb] bg-blue-50 text-[#2563eb] dark:bg-red-950/40 dark:text-red-300' : 'border-gray-200 bg-white text-gray-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}
                   >
                     {filter === 'all' ? 'All calls' : 'Missed'}
                   </button>
                 ))}
               </div>
 
-              {historyError && <p role="alert" className="m-0 text-sm text-red-600 dark:text-red-400">{historyError}</p>}
+              {historyError && <p role="alert" className="m-0 text-sm text-blue-600 dark:text-blue-400">{historyError}</p>}
               {history.length > 0 && (
                 <div className="divide-y divide-gray-200 dark:divide-slate-800">
                   {history.map(call => {

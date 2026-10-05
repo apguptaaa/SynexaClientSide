@@ -1,4 +1,4 @@
-export const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '')
+export const BACKEND_URL = 'https://synexabackend.onrender.com'
 export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '644066194449-mj91v7cjpl8d8rtsfstuvdt4rrjl068t.apps.googleusercontent.com'
 
 export const APP_CONFIG = {

@@ -79,7 +79,7 @@ export function ProfileSidebar({
                     setIsEditing(false)
                   }}
                   disabled={savingProfile}
-                  className="px-4 h-8 rounded-full flex items-center justify-center border-none bg-gradient-to-r from-[#8c0817] to-[#b91c1c] text-xs font-bold text-white shadow-md hover:shadow-lg cursor-pointer transition-all disabled:opacity-50"
+                  className="px-4 h-8 rounded-full flex items-center justify-center border-none bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] text-xs font-bold text-white shadow-md hover:shadow-lg cursor-pointer transition-all disabled:opacity-50"
                 >
                   {savingProfile ? 'Saving…' : 'Save'}
                 </button>
@@ -108,7 +108,7 @@ export function ProfileSidebar({
 
             {/* Clickable Avatar */}
             <div
-              className={`relative w-[120px] h-[120px] rounded-full overflow-hidden shadow-[0_8px_32px_rgba(140,8,23,0.2)] ring-4 ring-red-100 dark:ring-red-900/50 transition-all duration-300 ${isEditing ? 'cursor-pointer hover:shadow-[0_12px_40px_rgba(140,8,23,0.3)] hover:ring-red-200 group' : ''}`}
+              className={`relative w-[120px] h-[120px] rounded-full overflow-hidden shadow-[0_8px_32px_rgba(140,8,23,0.2)] ring-4 ring-blue-100 dark:ring-blue-900/50 transition-all duration-300 ${isEditing ? 'cursor-pointer hover:shadow-[0_12px_40px_rgba(140,8,23,0.3)] hover:ring-red-200 group' : ''}`}
               onClick={() => isEditing && !uploadingAvatar && profileFileRef.current?.click()}
             >
               <Avatar name={editName || me?.name || 'User'} src={editAvatarUrl} size={120} />
@@ -146,7 +146,7 @@ export function ProfileSidebar({
           {/* Name Edit Card */}
           <div className="bg-white dark:bg-[#0f172a] mx-5 mt-4 rounded-2xl px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 dark:border-slate-800">
             <div className="flex items-center gap-2 mb-1.5">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#8c0817] dark:text-red-400">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#2563eb] dark:text-blue-400">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                 <circle cx="12" cy="7" r="4"></circle>
               </svg>
@@ -157,7 +157,7 @@ export function ProfileSidebar({
                 <input
                   value={editName}
                   onChange={e => setEditName(e.target.value)}
-                  className="w-full border-none border-b-2 border-gray-200 dark:border-slate-700 outline-none text-[1.02rem] text-[#111827] dark:text-slate-100 bg-transparent pb-1 font-bold box-border focus:border-[#8c0817] dark:focus:border-red-500 transition-colors"
+                  className="w-full border-none border-b-2 border-gray-200 dark:border-slate-700 outline-none text-[1.02rem] text-[#111827] dark:text-slate-100 bg-transparent pb-1 font-bold box-border focus:border-[#2563eb] dark:focus:border-blue-500 transition-colors"
                 />
                 <p className="mt-2 text-[0.78rem] text-gray-400 dark:text-slate-400 font-normal leading-relaxed">This name is visible to your contacts.</p>
               </>
@@ -172,7 +172,7 @@ export function ProfileSidebar({
           {me?.email && (
             <div className="bg-white dark:bg-[#0f172a] mx-5 mt-3 rounded-2xl px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 dark:border-slate-800">
               <div className="flex items-center gap-2 mb-1">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#8c0817] dark:text-red-400">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#2563eb] dark:text-blue-400">
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                   <polyline points="22,6 12,13 2,6"></polyline>
                 </svg>
@@ -185,7 +185,7 @@ export function ProfileSidebar({
           {/* Phone Number Card */}
           <div className="bg-white dark:bg-[#0f172a] mx-5 mt-3 rounded-2xl px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 dark:border-slate-800">
             <div className="flex items-center gap-2 mb-1.5">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#8c0817] dark:text-red-400">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#2563eb] dark:text-blue-400">
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
               </svg>
               <label className="text-[0.72rem] font-extrabold text-gray-400 dark:text-slate-400 uppercase tracking-widest block">Phone Number</label>
@@ -196,7 +196,7 @@ export function ProfileSidebar({
                 value={editPhone}
                 onChange={e => setEditPhone(e.target.value)}
                 placeholder="+1 (555) 000-0000"
-                className="w-full border-none border-b-2 border-gray-200 dark:border-slate-700 outline-none text-[0.95rem] text-[#111827] dark:text-slate-100 bg-transparent pb-1 font-semibold box-border focus:border-[#8c0817] dark:focus:border-red-500 transition-colors"
+                className="w-full border-none border-b-2 border-gray-200 dark:border-slate-700 outline-none text-[0.95rem] text-[#111827] dark:text-slate-100 bg-transparent pb-1 font-semibold box-border focus:border-[#2563eb] dark:focus:border-blue-500 transition-colors"
               />
             ) : (
               <p className="text-[0.95rem] text-gray-700 dark:text-slate-200 font-semibold m-0">
@@ -208,7 +208,7 @@ export function ProfileSidebar({
           {/* Bio Card */}
           <div className="bg-white dark:bg-[#0f172a] mx-5 mt-3 rounded-2xl px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 dark:border-slate-800">
             <div className="flex items-center gap-2 mb-1.5">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#8c0817] dark:text-red-400">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#2563eb] dark:text-blue-400">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                 <polyline points="14 2 14 8 20 8"></polyline>
                 <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -222,7 +222,7 @@ export function ProfileSidebar({
                 onChange={e => setEditBio(e.target.value)}
                 placeholder="Write something about yourself..."
                 rows={3}
-                className="w-full border border-gray-200 dark:border-slate-700 rounded-xl p-2.5 outline-none text-[0.92rem] text-[#111827] dark:text-slate-100 bg-transparent font-medium box-border focus:border-[#8c0817] dark:focus:border-red-500 transition-colors resize-none"
+                className="w-full border border-gray-200 dark:border-slate-700 rounded-xl p-2.5 outline-none text-[0.92rem] text-[#111827] dark:text-slate-100 bg-transparent font-medium box-border focus:border-[#2563eb] dark:focus:border-blue-500 transition-colors resize-none"
               />
             ) : (
               <p className="text-[0.92rem] text-gray-600 dark:text-slate-300 font-medium m-0 leading-relaxed whitespace-pre-wrap">
@@ -239,7 +239,7 @@ export function ProfileSidebar({
                   setShowProfile(false)
                   onLogout()
                 }}
-                className="w-full rounded-2xl py-3 text-[0.88rem] font-extrabold text-red-600 dark:text-red-400 bg-red-50/80 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 border border-red-200/80 dark:border-red-900/50 cursor-pointer transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                className="w-full rounded-2xl py-3 text-[0.88rem] font-extrabold text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-red-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-red-200/80 dark:border-blue-900/50 cursor-pointer transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -256,3 +256,4 @@ export function ProfileSidebar({
     </div>
   )
 }
+

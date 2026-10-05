@@ -14,7 +14,7 @@ export function SidebarNav({
   me,
   hideMobileNav = false
 }: {
-  activeNavTab?: 'chats' | 'calls' | 'calendar'
+  activeNavTab?: 'chats' | 'calls' | 'calendar' | 'settings' | 'profile'
   me: User | null
   onChatClick?: () => void
   onCallsClick?: () => void
@@ -30,29 +30,36 @@ export function SidebarNav({
   return (
     <>
       {/* Desktop vertical sidebar - hidden on mobile */}
-      <div className="hidden md:flex w-[72px] h-full flex-col items-center py-5 bg-white dark:bg-[#0f172a] shrink-0 z-20 shadow-[2px_0_20px_rgba(140,8,23,0.08)] border-r border-red-100/40 dark:border-slate-800 select-none transition-colors duration-300">
+      <div className="hidden md:flex w-[72px] h-full flex-col items-center py-5 bg-white dark:bg-[#0f172a] shrink-0 z-20 border-r border-gray-100/60 dark:border-slate-800 select-none transition-colors duration-300">
         {/* Nav Icons */}
         <div className="flex flex-col gap-2 flex-1 w-full items-center">
           {/* Profile Button */}
-          <button
-            onClick={onProfileClick}
-            className="w-10 h-10 mb-2 rounded-full overflow-hidden flex items-center justify-center border-none bg-transparent cursor-pointer shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
-            title="My Profile"
-          >
-            <Avatar name={me?.name || 'User'} src={me?.avatarUrl} size={40} />
-          </button>
+          <div className="relative mb-2" title="My Profile">
+            {activeNavTab === 'profile' && (
+              <div className="absolute -left-[14px] top-1/2 -translate-y-1/2 w-[3px] h-6 bg-[#2563eb] rounded-r-full"></div>
+            )}
+            <button
+              onClick={onProfileClick}
+              className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center border-none bg-transparent cursor-pointer shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 ${
+                activeNavTab === 'profile' ? 'ring-2 ring-[#2563eb] ring-offset-2 dark:ring-offset-[#0f172a]' : ''
+              }`}
+              title="My Profile"
+            >
+              <Avatar name={me?.name || 'User'} src={me?.avatarUrl} size={40} />
+            </button>
+          </div>
 
           {/* 1. Chat (Messages) */}
           <div className="relative" title="Chats & Messages">
             {activeNavTab === 'chats' && (
-              <div className="absolute -left-[14px] top-1/2 -translate-y-1/2 w-[3px] h-6 bg-[#8c0817] rounded-r-full shadow-[2px_0_8px_rgba(140,8,23,0.3)]"></div>
+              <div className="absolute -left-[14px] top-1/2 -translate-y-1/2 w-[3px] h-6 bg-[#2563eb] rounded-r-full"></div>
             )}
             <button
               onClick={onChatClick}
               className={`w-11 h-11 rounded-xl flex items-center justify-center border-none cursor-pointer transition-all duration-300 ${
                 activeNavTab === 'chats'
-                  ? 'bg-gradient-to-br from-[#8c0817] to-[#a31d2b] text-white shadow-[0_4px_14px_rgba(140,8,23,0.35)] hover:shadow-[0_6px_20px_rgba(140,8,23,0.45)] hover:scale-105 active:scale-95'
-                  : 'bg-transparent text-gray-400 dark:text-slate-400 hover:text-[#8c0817] dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-slate-800 hover:scale-105'
+                  ? 'bg-[#2563eb] text-white hover:bg-[#1d4ed8] hover:scale-105 active:scale-95'
+                  : 'bg-transparent text-gray-400 dark:text-slate-400 hover:text-[#2563eb] dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 hover:scale-105'
               }`}
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
@@ -64,14 +71,14 @@ export function SidebarNav({
           {/* 2. Calls (Teams Calling UI) */}
           <div className="relative" title="Calls & History">
             {activeNavTab === 'calls' && (
-              <div className="absolute -left-[14px] top-1/2 -translate-y-1/2 w-[3px] h-6 bg-[#8c0817] rounded-r-full shadow-[2px_0_8px_rgba(140,8,23,0.3)]"></div>
+              <div className="absolute -left-[14px] top-1/2 -translate-y-1/2 w-[3px] h-6 bg-[#2563eb] rounded-r-full"></div>
             )}
             <button
               onClick={onCallsClick}
               className={`w-11 h-11 rounded-xl flex items-center justify-center border-none cursor-pointer transition-all duration-200 ${
                 activeNavTab === 'calls'
-                  ? 'bg-gradient-to-br from-[#8c0817] to-[#a31d2b] text-white shadow-[0_4px_14px_rgba(140,8,23,0.35)] hover:scale-105'
-                  : 'bg-transparent text-gray-400 dark:text-slate-400 hover:text-[#8c0817] dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-slate-800 hover:scale-105'
+                  ? 'bg-[#2563eb] text-white hover:bg-[#1d4ed8] hover:scale-105'
+                  : 'bg-transparent text-gray-400 dark:text-slate-400 hover:text-[#2563eb] dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 hover:scale-105'
               }`}
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -83,14 +90,14 @@ export function SidebarNav({
           {/* 3. Calendar & Meetings */}
           <div className="relative" title="Calendar & Meetings">
             {activeNavTab === 'calendar' && (
-              <div className="absolute -left-[14px] top-1/2 -translate-y-1/2 w-[3px] h-6 bg-[#8c0817] rounded-r-full shadow-[2px_0_8px_rgba(140,8,23,0.3)]"></div>
+              <div className="absolute -left-[14px] top-1/2 -translate-y-1/2 w-[3px] h-6 bg-[#2563eb] rounded-r-full"></div>
             )}
             <button
               onClick={onCalendarClick}
               className={`w-11 h-11 rounded-xl flex items-center justify-center border-none cursor-pointer transition-all duration-200 ${
                 activeNavTab === 'calendar'
-                  ? 'bg-gradient-to-br from-[#8c0817] to-[#a31d2b] text-white shadow-[0_4px_14px_rgba(140,8,23,0.35)] hover:scale-105'
-                  : 'bg-transparent text-gray-400 dark:text-slate-400 hover:text-[#8c0817] dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-slate-800 hover:scale-105'
+                  ? 'bg-[#2563eb] text-white hover:bg-[#1d4ed8] hover:scale-105'
+                  : 'bg-transparent text-gray-400 dark:text-slate-400 hover:text-[#2563eb] dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 hover:scale-105'
               }`}
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -105,7 +112,7 @@ export function SidebarNav({
           {/* 4. Search */}
           <button
             onClick={onSearchClick}
-            className="group w-11 h-11 rounded-xl flex items-center justify-center border-none bg-transparent text-gray-400 dark:text-slate-400 hover:text-[#8c0817] dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-slate-800 cursor-pointer transition-all duration-200 hover:scale-105"
+            className="group w-11 h-11 rounded-xl flex items-center justify-center border-none bg-transparent text-gray-400 dark:text-slate-400 hover:text-[#2563eb] dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer transition-all duration-200 hover:scale-105"
             title="Search Users & Groups"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-200 group-hover:scale-110">
@@ -116,7 +123,7 @@ export function SidebarNav({
         </div>
 
         {/* Subtle divider */}
-        <div className="w-8 h-px bg-gradient-to-r from-transparent via-red-200 dark:via-slate-700 to-transparent mb-4"></div>
+        <div className="w-8 h-px bg-gradient-to-r from-transparent via-blue-100 dark:via-slate-700 to-transparent mb-4"></div>
 
         {/* Bottom Icons */}
         <div className="flex flex-col gap-2 items-center">
@@ -145,16 +152,25 @@ export function SidebarNav({
             )}
           </button>
           {/* 5. Settings Button */}
-          <button
-            onClick={onSettingsClick}
-            className="group w-11 h-11 rounded-xl flex items-center justify-center border-none bg-transparent text-gray-400 hover:text-[#8c0817] hover:bg-red-50 cursor-pointer transition-all duration-200"
-            title="Settings (Teams view)"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-200 group-hover:scale-110 group-hover:rotate-45">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-          </button>
+          <div className="relative" title="Settings">
+            {activeNavTab === 'settings' && (
+              <div className="absolute -left-[14px] top-1/2 -translate-y-1/2 w-[3px] h-6 bg-[#2563eb] rounded-r-full"></div>
+            )}
+            <button
+              onClick={onSettingsClick}
+              className={`group w-11 h-11 rounded-xl flex items-center justify-center border-none cursor-pointer transition-all duration-200 ${
+                activeNavTab === 'settings'
+                  ? 'bg-[#2563eb] text-white hover:bg-[#1d4ed8] hover:scale-105'
+                  : 'bg-transparent text-gray-400 hover:text-[#2563eb] hover:bg-blue-50'
+              }`}
+              title="Settings"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-200 group-hover:scale-110 group-hover:rotate-45">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </button>
+          </div>
 
           {/* 7. Logout Button */}
           <button
@@ -180,7 +196,7 @@ export function SidebarNav({
               onClick={onChatClick}
               className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl border-none cursor-pointer transition-all duration-200 ${
                 activeNavTab === 'chats'
-                  ? 'text-[#8c0817] dark:text-red-400'
+                  ? 'text-[#2563eb] dark:text-blue-400'
                   : 'text-gray-400 dark:text-slate-500'
               } bg-transparent`}
             >
@@ -195,7 +211,7 @@ export function SidebarNav({
               onClick={onCallsClick}
               className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl border-none cursor-pointer transition-all duration-200 ${
                 activeNavTab === 'calls'
-                  ? 'text-[#8c0817] dark:text-red-400'
+                  ? 'text-[#2563eb] dark:text-blue-400'
                   : 'text-gray-400 dark:text-slate-500'
               } bg-transparent`}
             >
@@ -210,7 +226,7 @@ export function SidebarNav({
               onClick={onCalendarClick}
               className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl border-none cursor-pointer transition-all duration-200 ${
                 activeNavTab === 'calendar'
-                  ? 'text-[#8c0817] dark:text-red-400'
+                  ? 'text-[#2563eb] dark:text-blue-400'
                   : 'text-gray-400 dark:text-slate-500'
               } bg-transparent`}
             >
@@ -238,10 +254,16 @@ export function SidebarNav({
             {/* Profile */}
             <button
               onClick={onProfileClick}
-              className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl border-none cursor-pointer transition-all duration-200 text-gray-400 dark:text-slate-500 hover:text-gray-700 dark:hover:text-slate-300 bg-transparent"
+              className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl border-none cursor-pointer transition-all duration-200 ${
+                activeNavTab === 'profile'
+                  ? 'text-[#2563eb] dark:text-blue-400 font-bold'
+                  : 'text-gray-400 dark:text-slate-500'
+              } bg-transparent`}
             >
-              <div className="w-[20px] h-[20px] rounded-full overflow-hidden">
-                <Avatar name={me?.name || 'User'} src={me?.avatarUrl} size={20} />
+              <div className={`w-[22px] h-[22px] rounded-full overflow-hidden transition-all ${
+                activeNavTab === 'profile' ? 'ring-2 ring-[#2563eb] dark:ring-blue-400 shadow-sm' : ''
+              }`}>
+                <Avatar name={me?.name || 'User'} src={me?.avatarUrl} size={22} />
               </div>
               <span className="text-[0.65rem] font-bold">Profile</span>
             </button>

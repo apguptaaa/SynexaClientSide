@@ -20,8 +20,8 @@ function renderTextWithLinks(text: string, isSelf: boolean) {
           rel="noopener noreferrer"
           className={`underline font-semibold break-all ${
             isSelf
-              ? 'text-red-100 hover:text-white'
-              : 'text-[#8c0817] dark:text-red-400 hover:underline'
+              ? 'text-blue-100 hover:text-white'
+              : 'text-[#2563eb] dark:text-blue-400 hover:underline'
           }`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -40,11 +40,10 @@ export function Bubble({ msg, isSelf, showSender, isLast, onDelete }: { msg: Mes
   const isLocation = msg.fileType === 'location' || (msg.fileUrl && msg.fileUrl.includes('maps.google.com')) || (msg.text && (msg.text.includes('maps.google.com') || msg.text.includes('google.com/maps')))
   const locationUrl = msg.fileUrl || (msg.text && (msg.text.includes('maps.google.com') || msg.text.includes('google.com/maps')) ? msg.text : '')
 
-  // Use red theme for self in both light and dark mode; slate dark for others in dark mode
   const bgClass = isSelf 
-    ? 'bg-[#8c0817] text-white shadow-[0_2px_8px_rgba(140,8,23,0.2)]' 
+    ? 'bg-[#2563eb] text-white shadow-[0_2px_8px_rgba(37,99,235,0.18)]' 
     : 'bg-[#f1f5f9] dark:bg-slate-800 text-[#111827] dark:text-slate-100 border border-transparent dark:border-slate-700/60'
-  const timeClass = isSelf ? 'text-red-200' : 'text-gray-400 dark:text-slate-400'
+  const timeClass = isSelf ? 'text-blue-200' : 'text-gray-400 dark:text-slate-400'
   const hasMessageActions = Boolean(msg.text || (isSelf && onDelete))
 
   const closeMenu = () => setMenuPosition(null)
@@ -151,7 +150,7 @@ export function Bubble({ msg, isSelf, showSender, isLast, onDelete }: { msg: Mes
             {isImg ? (
               <img src={msg.fileUrl} alt="attachment" className="max-w-full max-h-[220px] rounded-lg block cursor-pointer" onClick={() => window.open(msg.fileUrl!, '_blank')} />
             ) : (
-              <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-3 py-2.5 rounded-lg no-underline text-[0.85rem] font-semibold max-w-[280px] overflow-hidden ${isSelf ? 'bg-black/10 text-white' : 'bg-black/5 text-[#8c0817]'}`}>
+              <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-3 py-2.5 rounded-lg no-underline text-[0.85rem] font-semibold max-w-[280px] overflow-hidden ${isSelf ? 'bg-black/10 text-white' : 'bg-black/5 text-[#2563eb]'}`}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                   <polyline points="14 2 14 8 20 8" />
