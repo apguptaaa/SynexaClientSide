@@ -46,8 +46,6 @@ export function HomePage() {
   const [showSidebar, setShowSidebar] = useState(true)
 
   const [showProfile, setShowProfile] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
-  const [showCalendar, setShowCalendar] = useState(false)
   const [selectedCallRoom, setSelectedCallRoom] = useState<Room | null>(null)
   const [chatWallpaper, setChatWallpaper] = useState<string | null>(() => localStorage.getItem('chat_wallpaper'))
   const [activeNavTab, setActiveNavTab] = useState<'chats' | 'calls' | 'calendar' | 'settings' | 'profile'>('chats')
@@ -800,10 +798,6 @@ export function HomePage() {
           />
         ) : activeNavTab === 'settings' ? (
           <SettingsView
-            onBack={() => {
-              setActiveNavTab('chats')
-              setShowSidebar(true)
-            }}
             me={me}
             editName={editName}
             setEditName={setEditName}
@@ -815,10 +809,6 @@ export function HomePage() {
           />
         ) : activeNavTab === 'calendar' ? (
           <CalendarView
-            onBack={() => {
-              setActiveNavTab('chats')
-              setShowSidebar(true)
-            }}
             me={me}
             rooms={rooms}
           />
@@ -836,8 +826,6 @@ export function HomePage() {
             onOpenChat={room => {
               openRoom(room)
             }}
-            missedNotifications={missedCallNotifications}
-            onMarkMissedNotificationRead={markCallNotificationRead}
           />
         ) : (
           <ChatArea

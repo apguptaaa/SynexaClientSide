@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft, Phone, Video, Search, PhoneIncoming, PhoneOutgoing, MessageSquare } from 'lucide-react'
-import type { Notification, User, Room } from '../../types/chat'
+import type { User, Room } from '../../types/chat'
 import { roomName } from '../../utils/chatHelpers'
 import { Avatar } from '../common/Avatar'
 import { callsService } from '../../services/callsService'
@@ -12,8 +12,6 @@ export function CallsView({
   onBack,
   onStartCall,
   onOpenChat,
-  missedNotifications = [],
-  onMarkMissedNotificationRead,
   filterRoom = null,
 }: {
   me: User | null
@@ -21,8 +19,6 @@ export function CallsView({
   onBack: () => void
   onStartCall: (roomId: string, callType: 'audio' | 'video') => void
   onOpenChat?: (room: Room) => void
-  missedNotifications: Notification[]
-  onMarkMissedNotificationRead: (notificationId: string) => Promise<void>
   filterRoom?: Room | null
 }) {
   const [activeTab, setActiveTab] = useState<'history' | 'contacts'>('history')
@@ -30,9 +26,7 @@ export function CallsView({
   const [history, setHistory] = useState<CallHistoryItem[]>([])
   const [nextBefore, setNextBefore] = useState<string | null>(null)
   const [historyLoading, setHistoryLoading] = useState(false)
-  const [historyError, setHistoryError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [markingNotificationId, setMarkingNotificationId] = useState<string | null>(null)
   const [selectedCallId, setSelectedCallId] = useState<string | null>(null)
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(filterRoom?.id ?? null)
   const [showMobileDetail, setShowMobileDetail] = useState(false)
@@ -54,13 +48,12 @@ export function CallsView({
       if (isCancelled) return
       setHistory(page.calls)
       setNextBefore(page.nextBefore)
-      setHistoryError(null)
       if (page.calls.length > 0 && !selectedCallId) {
         setSelectedCallId(page.calls[0].id)
         if (!filterRoom) setSelectedRoomId(page.calls[0].roomId)
       }
-    }).catch(error => {
-      if (!isCancelled) setHistoryError(error instanceof Error ? error.message : 'Unable to load call history.')
+    }).catch(_error => {
+      // Handle error if needed
     }).finally(() => {
       if (!isCancelled) setHistoryLoading(false)
     })
@@ -72,7 +65,6 @@ export function CallsView({
     setHistoryFilter(filter)
     setHistory([])
     setNextBefore(null)
-    setHistoryError(null)
     setHistoryLoading(true)
   }
 
@@ -83,21 +75,14 @@ export function CallsView({
       const page = await callsService.getHistory(historyFilter, nextBefore)
       setHistory(previous => [...previous, ...page.calls])
       setNextBefore(page.nextBefore)
-    } catch (error) {
-      setHistoryError(error instanceof Error ? error.message : 'Unable to load more call history.')
+    } catch (_error) {
+      // Handle error if needed
     } finally {
       setHistoryLoading(false)
     }
   }
 
-  const markMissedNotificationRead = async (notificationId: string) => {
-    setMarkingNotificationId(notificationId)
-    try {
-      await onMarkMissedNotificationRead(notificationId)
-    } finally {
-      setMarkingNotificationId(null)
-    }
-  }
+
 
   // Filter history list for search query
   let displayedHistory = filterRoom
@@ -112,9 +97,7 @@ export function CallsView({
     })
   }
 
-  const displayedMissedNotifications = filterRoom
-    ? missedNotifications.filter(n => n.roomId === filterRoom.id)
-    : missedNotifications
+
 
   // Selected room calculation
   const selectedRoom = rooms.find(r => r.id === selectedRoomId) || filterRoom || (displayedHistory.length > 0 ? rooms.find(r => r.id === displayedHistory[0].roomId) : null)

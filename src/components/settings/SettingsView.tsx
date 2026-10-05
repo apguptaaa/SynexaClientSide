@@ -7,7 +7,6 @@ import { useTheme } from '../../hooks/useTheme'
 import { Bluetooth, ArrowLeft } from 'lucide-react'
 
 export function SettingsView({
-  onBack,
   me,
   editName,
   setEditName,
@@ -16,7 +15,6 @@ export function SettingsView({
   profileFileRef,
   uploadingAvatar
 }: {
-  onBack: () => void
   me: User | null
   editName: string
   setEditName: (v: string) => void
