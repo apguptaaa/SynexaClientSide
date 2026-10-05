@@ -781,7 +781,7 @@ export function HomePage() {
       {/* Main Chat / Calls / Settings / Calendar / Profile View Feed */}
       <div className="flex flex-1 h-full min-w-0 relative overflow-hidden bg-white dark:bg-[#090d16] shadow-[-4px_0_24px_rgba(0,0,0,0.02)]">
         {activeNavTab === 'profile' ? (
-          {/* Mobile only: full-screen profile view (desktop uses modal) */}
+          /* Mobile only: full-screen profile view (desktop uses modal) */
           <ProfileView
             me={me}
             editName={editName}
