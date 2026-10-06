@@ -45,6 +45,38 @@ export const api = {
     return handleResponse<T>(res)
   },
 
+  postStream: async (path: string, body: unknown, signal?: AbortSignal): Promise<Response> => {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        ...authHeaders(),
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify(body),
+      signal,
+    })
+    if (res.status === 401) {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      window.location.href = '/login'
+      throw new Error('Unauthorized')
+    }
+    if (!res.ok) {
+      const bodyText = await res.text()
+      let message = `Request failed: ${res.status}`
+      if (bodyText) {
+        try {
+          const data = JSON.parse(bodyText) as { message?: string }
+          message = data.message ?? message
+        } catch {
+          message = bodyText
+        }
+      }
+      throw new Error(message)
+    }
+    return res
+  },
+
   put: async <T>(path: string, body: unknown): Promise<T> => {
     const res = await fetch(`${BASE_URL}${path}`, {
       method: 'PUT',

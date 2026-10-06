@@ -17,6 +17,13 @@ export interface UserPreferences {
   chatWallpaper?: string | null
 }
 
+export interface UserPrivacySettings {
+  readReceiptsEnabled: boolean
+  typingIndicatorsEnabled: boolean
+  lastSeenVisibility: 'everyone' | 'contacts' | 'nobody'
+  e2eeStatus?: 'active' | 'inactive' | string
+}
+
 export interface Message {
   id: string
   roomId: string

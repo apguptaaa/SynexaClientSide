@@ -7,6 +7,7 @@ import type {
   UploadResponse,
   Message,
   UserPreferences,
+  UserPrivacySettings,
 } from '../types/chat'
 
 export const chatService = {
@@ -14,6 +15,9 @@ export const chatService = {
   getMyPreferences: (): Promise<UserPreferences> => api.get('/api/users/me/preferences'),
   updateMyPreferences: (payload: UserPreferences): Promise<UserPreferences> =>
     api.patch('/api/users/me/preferences', payload),
+  getMyPrivacySettings: (): Promise<UserPrivacySettings> => api.get('/api/users/me/privacy'),
+  updateMyPrivacySettings: (payload: Partial<UserPrivacySettings>): Promise<UserPrivacySettings> =>
+    api.patch('/api/users/me/privacy', payload),
   updateMyProfile: (payload: {
     name?: string
     avatarUrl?: string

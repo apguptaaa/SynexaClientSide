@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import type { User } from '../../types/chat'
+import type { User, UserPrivacySettings } from '../../types/chat'
 import { getCallMediaDevices, saveCallMediaDevice } from '../../utils/mediaDevicePreferences'
 import { Avatar } from '../common/Avatar'
 import { SynexaLogo } from '../common/SynexaLogo'
 import { useTheme } from '../../hooks/useTheme'
 import { Bluetooth, ArrowLeft } from 'lucide-react'
+import { chatService } from '../../services/chatService'
 
 export function SettingsView({
   me,
@@ -42,6 +43,62 @@ export function SettingsView({
   const [readReceipts, setReadReceipts] = useState(true)
   const [lastSeenVis, setLastSeenVis] = useState<'everyone' | 'contacts' | 'nobody'>('everyone')
   const [typingIndicator, setTypingIndicator] = useState(true)
+  const [e2eeStatus, setE2eeStatus] = useState<'active' | 'inactive' | string>('inactive')
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadPrivacySettings = async () => {
+      try {
+        const settings = await chatService.getMyPrivacySettings()
+        if (!isMounted) return
+
+        setReadReceipts(settings.readReceiptsEnabled)
+        setTypingIndicator(settings.typingIndicatorsEnabled)
+        setLastSeenVis(settings.lastSeenVisibility)
+        setE2eeStatus(settings.e2eeStatus ?? 'inactive')
+      } catch (error) {
+        console.error('Unable to load privacy settings', error)
+      }
+    }
+
+    void loadPrivacySettings()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const updatePrivacySettings = async (patch: Partial<UserPrivacySettings>) => {
+    const previous = {
+      readReceiptsEnabled: readReceipts,
+      typingIndicatorsEnabled: typingIndicator,
+      lastSeenVisibility: lastSeenVis,
+    }
+
+    const nextState = {
+      readReceiptsEnabled: patch.readReceiptsEnabled ?? previous.readReceiptsEnabled,
+      typingIndicatorsEnabled: patch.typingIndicatorsEnabled ?? previous.typingIndicatorsEnabled,
+      lastSeenVisibility: patch.lastSeenVisibility ?? previous.lastSeenVisibility,
+    }
+
+    setReadReceipts(nextState.readReceiptsEnabled)
+    setTypingIndicator(nextState.typingIndicatorsEnabled)
+    setLastSeenVis(nextState.lastSeenVisibility)
+
+    try {
+      const updated = await chatService.updateMyPrivacySettings(patch)
+      setReadReceipts(updated.readReceiptsEnabled)
+      setTypingIndicator(updated.typingIndicatorsEnabled)
+      setLastSeenVis(updated.lastSeenVisibility)
+      setE2eeStatus(updated.e2eeStatus ?? e2eeStatus)
+    } catch (error) {
+      console.error('Unable to save privacy settings', error)
+      setReadReceipts(previous.readReceiptsEnabled)
+      setTypingIndicator(previous.typingIndicatorsEnabled)
+      setLastSeenVis(previous.lastSeenVisibility)
+    }
+  }
   
   // Notifications
   const [soundEnabled, setSoundEnabled] = useState(true)
@@ -490,7 +547,9 @@ export function SettingsView({
                     <input
                       type="checkbox"
                       checked={readReceipts}
-                      onChange={(e) => setReadReceipts(e.target.checked)}
+                      onChange={(e) => {
+                        void updatePrivacySettings({ readReceiptsEnabled: e.target.checked })
+                      }}
                       className="w-4 h-4 accent-[#2563eb] cursor-pointer"
                     />
                   </label>
@@ -503,7 +562,9 @@ export function SettingsView({
                     <input
                       type="checkbox"
                       checked={typingIndicator}
-                      onChange={(e) => setTypingIndicator(e.target.checked)}
+                      onChange={(e) => {
+                        void updatePrivacySettings({ typingIndicatorsEnabled: e.target.checked })
+                      }}
                       className="w-4 h-4 accent-[#2563eb] cursor-pointer"
                     />
                   </label>
@@ -515,7 +576,9 @@ export function SettingsView({
                     {(['everyone', 'contacts', 'nobody'] as const).map((opt) => (
                       <button
                         key={opt}
-                        onClick={() => setLastSeenVis(opt)}
+                        onClick={() => {
+                          void updatePrivacySettings({ lastSeenVisibility: opt })
+                        }}
                         className={`flex-1 py-2.5 rounded-xl border text-xs font-bold capitalize cursor-pointer transition-all ${
                           lastSeenVis === opt
                             ? 'border-[#2563eb] bg-blue-50 text-[#2563eb]'
@@ -533,8 +596,14 @@ export function SettingsView({
                     <div className="text-sm font-bold text-gray-800 dark:text-slate-200">End-to-End Encryption</div>
                     <div className="text-xs text-gray-400">Your direct messages are protected with 256-bit encryption</div>
                   </div>
-                  <span className="px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 font-extrabold text-[0.72rem]">
-                    ACTIVE
+                  <span
+                    className={`px-3 py-1 rounded-full font-extrabold text-[0.72rem] ${
+                      e2eeStatus === 'active'
+                        ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300'
+                        : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300'
+                    }`}
+                  >
+                    {e2eeStatus === 'active' ? 'ACTIVE' : String(e2eeStatus ?? 'INACTIVE').toUpperCase()}
                   </span>
                 </div>
               </div>
