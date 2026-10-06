@@ -15,6 +15,13 @@ export function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
+export function fmtLastSeen(iso: string) {
+  const d = new Date(iso)
+  const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const date = d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+  return `Last seen ${time}, ${date}`
+}
+
 export function fmtSidebarTime(iso: string) {
   const d = new Date(iso)
   const now = new Date()

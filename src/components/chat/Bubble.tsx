@@ -33,7 +33,7 @@ function renderTextWithLinks(text: string, isSelf: boolean) {
   })
 }
 
-export function Bubble({ msg, isSelf, showSender, isLast, onDelete }: { msg: Message; isSelf: boolean; showSender: boolean; showTail?: boolean; isLast: boolean; onDelete?: (message: Message) => void }) {
+export function Bubble({ msg, isSelf, showSender, isLast, onDelete, animate = false }: { msg: Message; isSelf: boolean; showSender: boolean; showTail?: boolean; isLast: boolean; onDelete?: (message: Message) => void; animate?: boolean }) {
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null)
   const longPressTimer = useRef<number | null>(null)
   const isImg = msg.fileType?.startsWith('image/')
@@ -106,7 +106,7 @@ export function Bubble({ msg, isSelf, showSender, isLast, onDelete }: { msg: Mes
         }}
         onTouchMove={cancelLongPress}
         onTouchEnd={cancelLongPress}
-        className={`relative max-w-[85%] md:max-w-[520px] flex flex-col ${bgClass} ${isSelf ? 'rounded-[16px_4px_16px_16px]' : 'rounded-[4px_16px_16px_16px]'} px-3.5 py-2.5 shadow-sm`}
+        className={`chat-message-bubble relative max-w-[85%] md:max-w-[520px] flex flex-col ${bgClass} ${isSelf ? 'rounded-[16px_4px_16px_16px]' : 'rounded-[4px_16px_16px_16px]'} px-3.5 py-2.5 shadow-sm ${animate ? 'chat-message-enter' : ''}`}
       >
         {showSender && !isSelf && (
           <div className="text-[0.78rem] font-bold mb-1" style={{ color: seedColor(msg.sender.name) }}>

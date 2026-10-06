@@ -79,6 +79,7 @@ export function SignupPage() {
 
   useEffect(() => {
     let timer: any
+    let resizeObserver: ResizeObserver | null = null
     const initGoogle = () => {
       const google = (window as any).google
       if (!google?.accounts?.id) {
@@ -130,21 +131,33 @@ export function SignupPage() {
 
       const container = document.getElementById('google-signup-btn')
       if (container) {
-        container.innerHTML = ''
-        google.accounts.id.renderButton(container, {
-          theme: 'outline',
-          size: 'large',
-          type: 'standard',
-          text: 'signup_with',
-          shape: 'rectangular',
-          width: 380,
-          logo_alignment: 'left'
-        })
+        let renderedWidth = 0
+        const renderResponsiveButton = () => {
+          const width = Math.max(200, Math.min(400, Math.floor(container.getBoundingClientRect().width)))
+          if (width === renderedWidth) return
+          renderedWidth = width
+          container.innerHTML = ''
+          google.accounts.id.renderButton(container, {
+            theme: 'outline',
+            size: 'large',
+            type: 'standard',
+            text: 'signup_with',
+            shape: 'rectangular',
+            width,
+            logo_alignment: 'left'
+          })
+        }
+        renderResponsiveButton()
+        resizeObserver = new ResizeObserver(renderResponsiveButton)
+        resizeObserver.observe(container)
       }
     }
 
     initGoogle()
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+      resizeObserver?.disconnect()
+    }
   }, [])
 
   return (
@@ -242,14 +255,16 @@ export function SignupPage() {
             </p>
           </div>
 
-          <div className="w-full flex justify-center min-h-[44px]">
-            {googleLoading ? (
-              <div className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-gray-200 bg-white text-gray-700 font-bold text-xs sm:text-sm">
-                <span className="w-4 h-4 rounded-full border-2 border-gray-400 border-t-gray-800 rounded-full animate-spin"></span>
-                <span>Signing in with Google…</span>
+          <div className="w-full min-w-0 min-h-12">
+            <div id="google-signup-btn" className={`${googleLoading ? 'hidden' : 'w-full min-w-0 flex justify-center overflow-hidden'} [&>div]:max-w-full [&_iframe]:max-w-full`}></div>
+            {googleLoading && (
+              <div role="status" aria-live="polite" className="flex min-h-[68px] w-full min-w-0 items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-3 text-blue-900 shadow-sm sm:min-h-16 sm:px-4">
+                <span className="h-5 w-5 shrink-0 rounded-full border-2 border-blue-200 border-t-blue-600 animate-spin"></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold leading-snug">Creating your account</span>
+                  <span className="mt-1 block text-xs font-medium leading-snug text-blue-700/75">Please wait while Google securely verifies your details.</span>
+                </span>
               </div>
-            ) : (
-              <div id="google-signup-btn" className="w-full flex justify-center [&>div]:w-full [&_iframe]:!w-full"></div>
             )}
           </div>
 

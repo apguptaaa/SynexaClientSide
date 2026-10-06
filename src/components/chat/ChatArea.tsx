@@ -10,7 +10,7 @@ import { Avatar } from '../common/Avatar'
 import { WelcomeScreen } from './WelcomeScreen'
 import { Bubble } from './Bubble'
 import { chatService } from '../../services/chatService'
-import { seedColor, fmtTime, fmtDateLabel } from '../../utils/chatHelpers'
+import { seedColor, fmtLastSeen, fmtDateLabel } from '../../utils/chatHelpers'
 
 // Move to helpers if preferred
 function groupByDate(msgs: Message[]) {
@@ -35,17 +35,19 @@ export function ChatArea({
   setMenuOpen,
   setShowContactProfile,
   feedRef,
+  newMessageDividerRef,
   handleScroll,
   loadingMore,
   nextCursor,
   loadMore,
   loadingMsgs,
   messages,
+  animatedMessageId,
   onDeleteMessage,
   onClearMessages,
   onDeleteRoom,
   typingUsers,
-  showNewMsgPill,
+  newMessageAnchorId,
   showEmojiPicker,
   setShowEmojiPicker,
   emojiPickerRef,
@@ -83,17 +85,19 @@ export function ChatArea({
   setMenuOpen: (o: boolean) => void
   setShowContactProfile: (s: boolean) => void
   feedRef: React.RefObject<HTMLDivElement | null>
+  newMessageDividerRef: React.RefObject<HTMLDivElement | null>
   handleScroll: () => void
   loadingMore: boolean
   nextCursor: string | null
   loadMore: () => void
   loadingMsgs: boolean
   messages: Message[]
+  animatedMessageId: string | null
   onDeleteMessage: (message: Message) => void
   onClearMessages: () => void
   onDeleteRoom: () => void
   typingUsers: Record<string, string[]>
-  showNewMsgPill: boolean
+  newMessageAnchorId: string | null
   showEmojiPicker: boolean
   setShowEmojiPicker: React.Dispatch<React.SetStateAction<boolean>>
   emojiPickerRef: React.RefObject<HTMLDivElement | null>
@@ -163,7 +167,7 @@ export function ChatArea({
                 {activeRoom.isGroup
                   ? `${activeRoom.members.length} members`
                   : curOther?.isOnline ? 'Online'
-                    : curOther?.lastSeenAt ? `Last seen ${fmtTime(curOther.lastSeenAt)}`
+                    : curOther?.lastSeenAt ? fmtLastSeen(curOther.lastSeenAt)
                       : 'Offline'}
               </div>
             </div>
@@ -360,7 +364,7 @@ export function ChatArea({
             {callNotifications.length > 0 && (
               <section aria-label="Missed call notifications" className="max-w-2xl mx-auto mb-5 divide-y divide-red-100 dark:divide-red-900/40 rounded-lg border border-red-200 dark:border-red-900/60 bg-red-50/90 dark:bg-red-950/30">
                 {callNotifications.map(notification => (
-                  <div key={notification.id} className="flex items-center gap-3 px-4 py-3">
+                  <div key={notification.id} className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:px-4">
                     <span className="w-9 h-9 shrink-0 rounded-full bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 flex items-center justify-center" aria-hidden="true">
                       <PhoneMissed size={17} />
                     </span>
@@ -372,7 +376,7 @@ export function ChatArea({
                     </div>
                     <button
                       onClick={() => onMarkCallNotificationRead(notification.id)}
-                      className="shrink-0 rounded-md border border-red-200 dark:border-red-800 bg-white/80 dark:bg-red-950/50 px-3 py-1.5 text-xs font-semibold text-red-800 dark:text-red-200 cursor-pointer hover:bg-white dark:hover:bg-red-950"
+                      className="min-h-10 w-full shrink-0 rounded-lg border border-red-200 bg-white/90 px-4 py-2 text-sm font-semibold text-red-800 transition-colors hover:bg-white cursor-pointer dark:border-red-800 dark:bg-red-950/50 dark:text-red-200 dark:hover:bg-red-950 sm:w-auto"
                     >
                       Mark read
                     </button>
@@ -457,7 +461,20 @@ export function ChatArea({
                   const showTail = !prev || prev.senderId !== msg.senderId
                   const isLast = !next || next.senderId !== msg.senderId
                   const showSender = activeRoom.isGroup && !isSelf && showTail
-                  return <Bubble key={msg.id} msg={msg} isSelf={isSelf} showSender={showSender} showTail={showTail} isLast={isLast} onDelete={onDeleteMessage} />
+                  return (
+                    <React.Fragment key={msg.id}>
+                      {msg.id === newMessageAnchorId && (
+                        <div ref={newMessageDividerRef} className="my-5 flex items-center gap-3" role="status" aria-label="New messages">
+                          <span className="h-px flex-1 bg-blue-200 dark:bg-blue-900/70" />
+                          <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[0.68rem] font-bold uppercase tracking-wide text-blue-700 dark:border-blue-900/70 dark:bg-blue-950/50 dark:text-blue-300">
+                            New messages
+                          </span>
+                          <span className="h-px flex-1 bg-blue-200 dark:bg-blue-900/70" />
+                        </div>
+                      )}
+                      <Bubble msg={msg} isSelf={isSelf} showSender={showSender} showTail={showTail} isLast={isLast} onDelete={onDeleteMessage} animate={msg.id === animatedMessageId} />
+                    </React.Fragment>
+                  )
                 })}
               </div>
             ))}
@@ -465,24 +482,19 @@ export function ChatArea({
             {/* Typing indicator */}
             {activeRoom && (typingUsers[activeRoom.id] ?? []).length > 0 && (
               <div className="flex justify-start mb-2 ml-10">
-                <div className="bg-gray-100 rounded-2xl px-4 py-2.5 flex items-center gap-2">
+                <div className="chat-typing-enter bg-gray-100 dark:bg-slate-800 rounded-2xl px-4 py-2.5 flex items-center gap-2">
                   <span className="text-[0.82rem] font-medium text-gray-500">
                     {(typingUsers[activeRoom.id] ?? []).join(', ')} {(typingUsers[activeRoom.id] ?? []).length === 1 ? 'is' : 'are'} typing
                   </span>
                   <span className="flex gap-1 items-center">
                     {[0, 1, 2].map(i => (
-                      <span key={i} className="w-1.5 h-1.5 rounded-full bg-gray-400 inline-block animate-[typingDot_1.2s_ease-in-out_infinite]" style={{ animationDelay: `${i * 0.2}s` }} />
+                      <span key={i} className="typing-dot bg-gray-400" style={{ animationDelay: `${i * 0.2}s` }} />
                     ))}
                   </span>
                 </div>
               </div>
             )}
 
-            {showNewMsgPill && (
-              <div className="absolute bottom-[90px] left-1/2 -translate-x-1/2 bg-gray-900 text-white px-5 py-2 rounded-full text-[0.85rem] z-[100] animate-[fadeIn_0.3s,fadeOut_0.3s_2.2s_forwards] pointer-events-none shadow-lg font-bold">
-                New message
-              </div>
-            )}
           </div>
           {/* Attached File Preview Pill */}
           {attachedFile && (
