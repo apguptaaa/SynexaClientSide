@@ -7,6 +7,7 @@ import { sortRooms, roomName, otherUser, roomAvatar } from '../utils/chatHelpers
 import { NewChatModal } from '../components/chat/NewChatModal'
 import { ChatSidebar } from '../components/chat/ChatSidebar'
 import { ChatArea } from '../components/chat/ChatArea'
+import { AIChatView } from '../components/chat/AIChatView'
 import { ProfileSidebar } from '../components/profile/ProfileSidebar'
 import { ContactInfoSidebar } from '../components/profile/ContactInfoSidebar'
 import { CropModal } from '../components/profile/CropModal'
@@ -44,6 +45,7 @@ export function HomePage() {
   const [sidebarQ, setSidebarQ] = useState('')
   const [filter, setFilter] = useState<'all' | 'direct' | 'groups'>('all')
   const [showSidebar, setShowSidebar] = useState(true)
+  const [aiChatOpen, setAiChatOpen] = useState(false)
 
   const [showProfile, setShowProfile] = useState(false)
   const [selectedCallRoom, setSelectedCallRoom] = useState<Room | null>(null)
@@ -100,6 +102,7 @@ export function HomePage() {
   useEffect(() => { meRef.current = me }, [me])
 
   const openRoom = async (room: Room) => {
+    setAiChatOpen(false)
     if (activeRef.current?.id === room.id) {
       setShowSidebar(false)
       return
@@ -721,16 +724,19 @@ export function HomePage() {
         onChatClick={() => {
           setActiveNavTab('chats')
           setSelectedCallRoom(null)
+          setAiChatOpen(false)
           setShowSidebar(true)
         }}
         onCallsClick={() => {
           setActiveNavTab('calls')
           setSelectedCallRoom(null)
+          setAiChatOpen(false)
           setShowSidebar(false)
         }}
         onCalendarClick={() => {
           setActiveNavTab('calendar')
           setSelectedCallRoom(null)
+          setAiChatOpen(false)
           setShowSidebar(false)
         }}
         onSearchClick={() => {
@@ -739,6 +745,7 @@ export function HomePage() {
         onSettingsClick={() => {
           setActiveNavTab('settings')
           setSelectedCallRoom(null)
+          setAiChatOpen(false)
           setShowSidebar(false)
         }}
         onProfileClick={openProfile}
@@ -768,6 +775,13 @@ export function HomePage() {
           setFilter={setFilter}
           setModal={setModal}
           openRoom={openRoom}
+          onOpenAIChat={() => {
+            setActiveNavTab('chats')
+            setSelectedCallRoom(null)
+            setAiChatOpen(true)
+            setShowSidebar(false)
+          }}
+          aiChatOpen={aiChatOpen}
           onDeleteRooms={deleteRooms}
         />
 
@@ -881,6 +895,9 @@ export function HomePage() {
             }}
           />
         )}
+        <div className={`absolute inset-0 z-20 ${aiChatOpen ? 'flex' : 'hidden'}`}>
+          <AIChatView />
+        </div>
       </div>
 
       {toast && (

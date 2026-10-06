@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Room, User } from '../../types/chat'
-import { Check, CheckSquare, Square } from 'lucide-react'
+import { Check, CheckSquare, Sparkles, Square } from 'lucide-react'
 import { IcoMoreVert } from '../common/Icons'
 import { IconBtn } from '../common/IconBtn'
 import { RoomItem } from './RoomItem'
@@ -16,6 +16,8 @@ export function ChatSidebar({
   setFilter,
   setModal,
   openRoom,
+  onOpenAIChat,
+  aiChatOpen,
   onDeleteRooms,
   me
 }: {
@@ -29,6 +31,8 @@ export function ChatSidebar({
   setFilter: (f: 'all' | 'direct' | 'groups') => void
   setModal: (show: boolean) => void
   openRoom: (room: Room) => void
+  onOpenAIChat: () => void
+  aiChatOpen: boolean
   onDeleteRooms: (rooms: Room[]) => void
   me: User | null
 }) {
@@ -127,6 +131,27 @@ export function ChatSidebar({
           </button>
         </div>
       )}
+
+      <div className="px-4 pb-3">
+        <button
+          type="button"
+          onClick={onOpenAIChat}
+          aria-current={aiChatOpen ? 'page' : undefined}
+          className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
+            aiChatOpen
+              ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300'
+              : 'border-gray-200 bg-white text-gray-700 hover:border-blue-200 hover:bg-blue-50/50 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:border-blue-900 dark:hover:bg-blue-950/30'
+          }`}
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+            <Sparkles size={18} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold">Synexa AI</span>
+            <span className="block text-[0.7rem] font-medium opacity-70">Start an AI conversation</span>
+          </span>
+        </button>
+      </div>
 
       {/* search */}
       <div className="px-6 pb-4">
