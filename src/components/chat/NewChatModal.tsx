@@ -24,7 +24,13 @@ export function NewChatModal({ myId, onClose, onCreated }: {
     return () => clearTimeout(t)
   }, [])
 
+  const resetSearch = () => {
+    setQ('')
+    setResults([])
+  }
+
   const handleClose = () => {
+    resetSearch()
     setVisible(false)
     setTimeout(onClose, 280)
   }
@@ -49,6 +55,9 @@ export function NewChatModal({ myId, onClose, onCreated }: {
       const room = tab === 'dm'
         ? await chatService.createRoom({ isGroup: false, memberIds: [selected[0].id] })
         : await chatService.createRoom({ isGroup: true, name: groupName.trim(), memberIds: selected.map(u => u.id) })
+      resetSearch()
+      setSelected([])
+      setGroupName('')
       onCreated(room)
     } catch { /**/ }
     setCreating(false)
@@ -92,7 +101,7 @@ export function NewChatModal({ myId, onClose, onCreated }: {
         {/* Tabs */}
         <div className="flex border-b border-gray-100 dark:border-slate-800 px-5">
           {(['dm', 'group'] as const).map(t => (
-            <button key={t} onClick={() => { setTab(t); setSelected([]) }}
+            <button key={t} onClick={() => { setTab(t); setSelected([]); resetSearch(); }}
               className={`flex-1 py-3 border-none cursor-pointer font-semibold text-[0.85rem] bg-transparent transition-all duration-200 ${tab === t ? 'text-[#2563eb] dark:text-blue-400 border-b-2 border-b-[#2563eb]' : 'text-gray-400 dark:text-slate-400 border-b-2 border-b-transparent hover:text-gray-600 dark:hover:text-slate-200'}`}
             >
               {t === 'dm' ? 'Direct Message' : 'New Group'}

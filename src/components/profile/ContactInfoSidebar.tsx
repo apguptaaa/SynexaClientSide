@@ -1,7 +1,7 @@
 import type { Room, User } from '../../types/chat'
 import { IcoGroup } from '../common/Icons'
 import { Avatar } from '../common/Avatar'
-import { seedColor, fmtTime } from '../../utils/chatHelpers'
+import { seedColor, fmtLastSeen } from '../../utils/chatHelpers'
 
 export function ContactInfoSidebar({
   showContactProfile,
@@ -91,7 +91,7 @@ export function ContactInfoSidebar({
                     <span className="text-green-600 dark:text-green-400">Online</span>
                   </span>
                 )
-                : curOther?.lastSeenAt ? `Last seen ${fmtTime(curOther.lastSeenAt)}`
+                : curOther?.lastSeenAt ? fmtLastSeen(curOther.lastSeenAt)
                   : 'Offline'}
             </div>
           </div>

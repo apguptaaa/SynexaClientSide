@@ -18,21 +18,31 @@ export function RoomItem({ room, myId, active, onClick, selectionMode, selected,
   return (
     <div 
       onClick={() => selectionMode ? onToggleSelection() : onClick()}
-      className={`group flex items-center px-4 py-3 mx-3 my-0.5 cursor-pointer rounded-xl transition-all duration-200 ${
-        selected || active
-          ? 'bg-white dark:bg-slate-800 shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-transparent' 
-          : 'bg-transparent hover:bg-white/60 dark:hover:bg-slate-800/50 border border-transparent'
+      className={`group flex items-center px-4 py-3 mx-3 my-0.5 cursor-pointer rounded-2xl border transition-all duration-200 ${
+        selected
+          ? 'border-blue-200 bg-blue-50/80 shadow-[0_6px_18px_rgba(37,99,235,0.08)] dark:border-blue-900/70 dark:bg-blue-950/20'
+          : active
+            ? 'border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)] dark:border-slate-700 dark:bg-slate-800'
+            : 'border-transparent bg-transparent hover:bg-white/80 hover:shadow-[0_2px_8px_rgba(15,23,42,0.04)] dark:hover:bg-slate-800/60'
       }`}
     >
       {selectionMode && (
-        <input
-          type="checkbox"
-          checked={selected}
-          aria-label={`Select ${name}`}
+        <label
+          className={`mr-3 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors ${
+            selected
+              ? 'border-[#2563eb] bg-[#2563eb] shadow-[0_0_0_3px_rgba(37,99,235,0.11)]'
+              : 'border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-900'
+          }`}
           onClick={event => event.stopPropagation()}
-          onChange={onToggleSelection}
-          className="mr-3 h-4 w-4 shrink-0 cursor-pointer accent-[#2563eb]"
-        />
+        >
+          <input
+            type="checkbox"
+            checked={selected}
+            aria-label={`Select ${name}`}
+            onChange={onToggleSelection}
+            className="h-4 w-4 cursor-pointer accent-[#2563eb]"
+          />
+        </label>
       )}
       {room.isGroup ? (
         <div className="w-[46px] h-[46px] rounded-full shrink-0 mr-3 flex items-center justify-center text-white" style={{ background: seedColor(name) }}>

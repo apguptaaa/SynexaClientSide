@@ -87,6 +87,7 @@ export function LoginPage() {
     if (checkingBackend) return
 
     let timer: any
+    let resizeObserver: ResizeObserver | null = null
     const initGoogle = () => {
       const google = (window as any).google
       if (!google?.accounts?.id) {
@@ -138,21 +139,33 @@ export function LoginPage() {
 
       const container = document.getElementById('google-login-btn')
       if (container) {
-        container.innerHTML = ''
-        google.accounts.id.renderButton(container, {
-          theme: 'outline',
-          size: 'large',
-          type: 'standard',
-          text: 'continue_with',
-          shape: 'rectangular',
-          width: 380,
-          logo_alignment: 'left'
-        })
+        let renderedWidth = 0
+        const renderResponsiveButton = () => {
+          const width = Math.max(200, Math.min(400, Math.floor(container.getBoundingClientRect().width)))
+          if (width === renderedWidth) return
+          renderedWidth = width
+          container.innerHTML = ''
+          google.accounts.id.renderButton(container, {
+            theme: 'outline',
+            size: 'large',
+            type: 'standard',
+            text: 'continue_with',
+            shape: 'rectangular',
+            width,
+            logo_alignment: 'left'
+          })
+        }
+        renderResponsiveButton()
+        resizeObserver = new ResizeObserver(renderResponsiveButton)
+        resizeObserver.observe(container)
       }
     }
 
     initGoogle()
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+      resizeObserver?.disconnect()
+    }
   }, [checkingBackend])
 
   // Backend Health / Loading Screen with new 3D logo
@@ -186,10 +199,20 @@ export function LoginPage() {
   return (
     <div className="min-h-screen w-full flex bg-[#f8f9fc] font-sans">
       {/* Left Brand Panel (Desktop only) */}
-      <div className="hidden lg:flex w-[50%] xl:w-[52%] bg-gradient-to-br from-[#2563eb] via-[#a31222] to-[#680410] text-white relative overflow-hidden flex-col justify-between p-12 select-none">
+      <div className="hidden lg:flex w-[50%] xl:w-[52%] bg-[linear-gradient(135deg,#102447_0%,#1747a6_52%,#102447_100%)] text-white relative overflow-hidden flex-col justify-between p-12 select-none">
+        {/* Subtle grid texture */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 opacity-[0.12] pointer-events-none"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(255,255,255,0.32) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.32) 1px, transparent 1px)',
+            backgroundSize: '42px 42px'
+          }}
+        />
         {/* Background Ambient Glows */}
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-black/30 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -top-28 -left-24 w-[28rem] h-[28rem] bg-sky-400/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -bottom-32 -right-24 w-[32rem] h-[32rem] bg-blue-950/50 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute top-[38%] -right-24 w-72 h-72 bg-cyan-300/10 rounded-full blur-3xl pointer-events-none"></div>
 
         {/* Top Brand Tag */}
         <div className="relative z-10 flex items-center gap-3.5">
@@ -222,7 +245,7 @@ export function LoginPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-bold text-white truncate">Sarah Chen</div>
-                <div className="text-[0.7rem] text-red-200">Product Lead • Just now</div>
+                <div className="text-[0.7rem] text-blue-100/75">Product Lead • Just now</div>
               </div>
               <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
             </div>
@@ -233,7 +256,7 @@ export function LoginPage() {
         </div>
 
         {/* Bottom Security Footer */}
-        <div className="relative z-10 flex items-center gap-2 text-xs text-red-200/80 font-medium">
+        <div className="relative z-10 flex items-center gap-2 text-xs text-blue-100/80 font-medium">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -286,14 +309,16 @@ export function LoginPage() {
           </div>
 
           {/* Google Sign-in */}
-          <div className="w-full flex justify-center min-h-[44px]">
-            {googleLoading ? (
-              <div className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-gray-200 bg-white text-gray-700 font-bold text-xs sm:text-sm">
-                <span className="w-4 h-4 rounded-full border-2 border-gray-300 border-t-gray-600 animate-spin"></span>
-                <span>Signing in with Google…</span>
+          <div className="w-full min-w-0 min-h-12">
+            <div id="google-login-btn" className={`${googleLoading ? 'hidden' : 'w-full min-w-0 flex justify-center overflow-hidden'} [&>div]:max-w-full [&_iframe]:max-w-full`}></div>
+            {googleLoading && (
+              <div role="status" aria-live="polite" className="flex min-h-[68px] w-full min-w-0 items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-3 text-blue-900 shadow-sm sm:min-h-16 sm:px-4">
+                <span className="h-5 w-5 shrink-0 rounded-full border-2 border-blue-200 border-t-blue-600 animate-spin"></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold leading-snug">Signing in with Google</span>
+                  <span className="mt-1 block text-xs font-medium leading-snug text-blue-700/75">Please wait while we securely verify your account.</span>
+                </span>
               </div>
-            ) : (
-              <div id="google-login-btn" className="w-full flex justify-center [&>div]:w-full [&_iframe]:!w-full"></div>
             )}
           </div>
 

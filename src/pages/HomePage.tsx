@@ -58,7 +58,8 @@ export function HomePage() {
 
   const [typingUsers, setTypingUsers] = useState<Record<string, string[]>>({})
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
-  const [showNewMsgPill, setShowNewMsgPill] = useState(false)
+  const [newMessageAnchorId, setNewMessageAnchorId] = useState<string | null>(null)
+  const [animatedMessageId, setAnimatedMessageId] = useState<string | null>(null)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const emojiPickerRef = useRef<HTMLDivElement>(null)
   const [showAttachMenu, setShowAttachMenu] = useState(false)
@@ -92,14 +93,67 @@ export function HomePage() {
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
 
   const feedRef = useRef<HTMLDivElement>(null)
+  const newMessageDividerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const activeRef = useRef<Room | null>(null)
   const meRef = useRef<User | null>(null)
   const pendingMessages = useRef(new Map<string, string>())
+  const newMessageTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const scrollToBottom = useCallback((smooth = false) => {
+    requestAnimationFrame(() => {
+      const el = feedRef.current
+      if (!el) return
+      if (smooth) {
+        el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+      } else {
+        const previousBehavior = el.style.scrollBehavior
+        el.style.scrollBehavior = 'auto'
+        el.scrollTop = el.scrollHeight
+        el.style.scrollBehavior = previousBehavior
+      }
+    })
+  }, [])
+
+  const animateMessage = useCallback((messageId: string) => {
+    setAnimatedMessageId(messageId)
+    window.setTimeout(() => {
+      setAnimatedMessageId(current => current === messageId ? null : current)
+    }, 350)
+  }, [])
+
+  const showNewMessageDivider = useCallback((messageId: string) => {
+    setNewMessageAnchorId(current => current ?? messageId)
+    if (newMessageTimer.current) clearTimeout(newMessageTimer.current)
+    newMessageTimer.current = setTimeout(() => {
+      setNewMessageAnchorId(null)
+      newMessageTimer.current = null
+    }, 12000)
+  }, [])
 
   useEffect(() => { activeRef.current = activeRoom }, [activeRoom])
   useEffect(() => { meRef.current = me }, [me])
+
+  useEffect(() => {
+    if (!activeRoom || loadingMsgs) return
+    let secondFrame = 0
+    const firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => {
+        const feed = feedRef.current
+        const divider = newMessageDividerRef.current
+        if (newMessageAnchorId && feed && divider) {
+          feed.scrollTop = Math.max(0, divider.offsetTop - feed.clientHeight * 0.35)
+        } else {
+          scrollToBottom(false)
+        }
+      })
+    })
+    return () => {
+      cancelAnimationFrame(firstFrame)
+      cancelAnimationFrame(secondFrame)
+    }
+  }, [activeRoom?.id, loadingMsgs, messages.length, newMessageAnchorId, scrollToBottom])
 
   const openRoom = async (room: Room) => {
     setAiChatOpen(false)
@@ -107,6 +161,8 @@ export function HomePage() {
       setShowSidebar(false)
       return
     }
+    if (newMessageTimer.current) clearTimeout(newMessageTimer.current)
+    setNewMessageAnchorId(null)
     setActiveRoom(room)
     setActiveNavTab('chats')
     socketService.joinRoom(room.id)
@@ -117,17 +173,20 @@ export function HomePage() {
     setUnreadCounts(prev => ({ ...prev, [room.id]: 0 }))
     try {
       const { messages: msgs, nextCursor: cur } = await chatService.getMessages(room.id, undefined, 30)
-      setMessages(msgs.slice().reverse())
+      const chronologicalMessages = msgs.slice().reverse()
+      setMessages(chronologicalMessages)
       setNextCursor(cur)
 
       const unseenIds = msgs.filter(m => m.senderId !== me?.id && m.status !== 'seen').map(m => m.id)
+      const firstUnread = chronologicalMessages.find(message => unseenIds.includes(message.id))
+      if (firstUnread) showNewMessageDivider(firstUnread.id)
       if (unseenIds.length > 0) {
         chatService.markSeen(room.id, unseenIds).catch(() => { })
         socketService.emitSeen(room.id, unseenIds)
       }
     } catch { /**/ }
     setLoadingMsgs(false)
-    setTimeout(() => feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight }), 60)
+    requestAnimationFrame(() => scrollToBottom(false))
     inputRef.current?.focus()
   }
 
@@ -195,6 +254,7 @@ export function HomePage() {
 
       if (optimisticId) {
         pendingMessages.current.delete(messageKey)
+        if (activeRef.current?.id === msg.roomId) animateMessage(msg.id)
         setMessages(prev => prev.map(message =>
           message.id === optimisticId
             ? { ...message, ...msg, status: msg.status ?? 'sent' }
@@ -218,8 +278,7 @@ export function HomePage() {
         if (activeRef.current?.id === msg.roomId) {
           chatService.markSeen(msg.roomId, [msg.id]).catch(() => { })
           socketService.emitSeen(msg.roomId, [msg.id])
-          setShowNewMsgPill(true)
-          setTimeout(() => setShowNewMsgPill(false), 2500)
+          showNewMessageDivider(msg.id)
         } else {
           socketService.emitDelivered(msg.roomId, [msg.id])
           setUnreadCounts(prev => ({ ...prev, [msg.roomId]: (prev[msg.roomId] || 0) + 1 }))
@@ -227,11 +286,12 @@ export function HomePage() {
       }
 
       if (activeRef.current?.id === msg.roomId) {
+        animateMessage(msg.id)
         setMessages(prev => {
           if (prev.find(m => m.id === msg.id)) return prev
           return [...prev, msg]
         })
-        setTimeout(() => feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: 'smooth' }), 50)
+        setTimeout(() => scrollToBottom(true), 50)
       }
     }
 
@@ -340,7 +400,7 @@ export function HomePage() {
       socketService.offTypingStop(handleTypingStop)
       socketService.offNotification(handleNotification)
     }
-  }, [])
+  }, [animateMessage, showNewMessageDivider])
 
   const markCallNotificationRead = async (notificationId: string) => {
     try {
@@ -535,6 +595,7 @@ export function HomePage() {
       socketService.sendMessage(activeRoom.id, text || null, finalFileUrl, finalFileType)
 
       if (me) {
+        animateMessage(optimisticId)
         setMessages(prev => [...prev, {
           id: optimisticId, roomId: activeRoom.id, senderId: me.id,
           text: text || null, fileUrl: finalFileUrl, fileType: finalFileType,
@@ -544,7 +605,7 @@ export function HomePage() {
       setInputText('')
       setAttachedFile(null)
       if (inputRef.current) { inputRef.current.style.height = 'auto' }
-      setTimeout(() => feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: 'smooth' }), 50)
+      setTimeout(() => scrollToBottom(true), 50)
     } catch (error) {
       setSendError(error instanceof Error ? error.message : 'Unable to send message')
     }
@@ -728,12 +789,14 @@ export function HomePage() {
           setShowSidebar(true)
         }}
         onCallsClick={() => {
+          setModal(false)
           setActiveNavTab('calls')
           setSelectedCallRoom(null)
           setAiChatOpen(false)
           setShowSidebar(false)
         }}
         onCalendarClick={() => {
+          setModal(false)
           setActiveNavTab('calendar')
           setSelectedCallRoom(null)
           setAiChatOpen(false)
@@ -743,6 +806,7 @@ export function HomePage() {
           setModal(true)
         }}
         onSettingsClick={() => {
+          setModal(false)
           setActiveNavTab('settings')
           setSelectedCallRoom(null)
           setAiChatOpen(false)
@@ -784,11 +848,11 @@ export function HomePage() {
           aiChatOpen={aiChatOpen}
           onDeleteRooms={deleteRooms}
         />
-
-        {modal && me && (
-          <NewChatModal myId={me.id} onClose={() => setModal(false)} onCreated={onRoomCreated} />
-        )}
       </div>
+
+      {modal && me && (
+        <NewChatModal myId={me.id} onClose={() => setModal(false)} onCreated={onRoomCreated} />
+      )}
 
       {/* Main Chat / Calls / Settings / Calendar / Profile View Feed */}
       <div className="flex flex-1 h-full min-w-0 relative overflow-hidden bg-white dark:bg-[#090d16] shadow-[-4px_0_24px_rgba(0,0,0,0.02)]">
@@ -853,17 +917,19 @@ export function HomePage() {
             setMenuOpen={setMenuOpen}
             setShowContactProfile={setShowContactProfile}
             feedRef={feedRef}
+            newMessageDividerRef={newMessageDividerRef}
             handleScroll={handleScroll}
             loadingMore={loadingMore}
             nextCursor={nextCursor}
             loadMore={loadMore}
             loadingMsgs={loadingMsgs}
             messages={messages}
+            animatedMessageId={animatedMessageId}
             onDeleteMessage={message => { void deleteMessage(message) }}
             onClearMessages={() => { void clearActiveRoomMessages() }}
             onDeleteRoom={() => { if (activeRoom) void deleteRoom(activeRoom) }}
             typingUsers={typingUsers}
-            showNewMsgPill={showNewMsgPill}
+            newMessageAnchorId={newMessageAnchorId}
             showEmojiPicker={showEmojiPicker}
             setShowEmojiPicker={setShowEmojiPicker}
             emojiPickerRef={emojiPickerRef}

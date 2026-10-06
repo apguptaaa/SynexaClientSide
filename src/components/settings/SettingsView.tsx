@@ -4,7 +4,7 @@ import { getCallMediaDevices, saveCallMediaDevice } from '../../utils/mediaDevic
 import { Avatar } from '../common/Avatar'
 import { SynexaLogo } from '../common/SynexaLogo'
 import { useTheme } from '../../hooks/useTheme'
-import { Bluetooth, ArrowLeft } from 'lucide-react'
+import { Bluetooth, ArrowLeft, MessageCircle } from 'lucide-react'
 import { chatService } from '../../services/chatService'
 
 export function SettingsView({
@@ -349,44 +349,56 @@ export function SettingsView({
 
                 {/* Theme Selection */}
                 <div className="space-y-3 border-b border-gray-100 dark:border-slate-800 pb-6">
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Theme</label>
-                  <div className="grid grid-cols-2 gap-3 max-w-md">
+                  <label className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-400">Theme</label>
+                  <div className="grid max-w-lg grid-cols-2 gap-3">
                     {[
-                      { id: 'light', label: 'Light', desc: 'Default bright style', bg: 'bg-white border-gray-300' },
-                      { id: 'dark', label: 'Dark', desc: 'Easy on the eyes', bg: 'bg-gray-900 text-white border-gray-800' }
-                    ].map((t) => (
-                      <div
-                        key={t.id}
-                        onClick={() => setTheme(t.id as any)}
-                        className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
-                          theme === t.id
-                            ? 'border-[#2563eb] dark:border-blue-500 bg-blue-50/30 dark:bg-blue-950/30 shadow-sm'
-                            : 'border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
-                        }`}
-                      >
-                        <div className={`h-8 rounded-lg mb-2 border ${t.bg} flex items-center justify-center text-xs font-bold`}>
-                          {t.label}
-                        </div>
-                        <div className="text-xs font-bold text-gray-800 dark:text-slate-100">{t.label}</div>
-                      </div>
-                    ))}
+                      { id: 'light', label: 'Light', desc: 'Default bright style', panel: 'bg-white text-slate-900 border border-slate-200' },
+                      { id: 'dark', label: 'Dark', desc: 'Easy on the eyes', panel: 'bg-slate-900 text-white border border-slate-700' }
+                    ].map((t) => {
+                      const selected = theme === t.id
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setTheme(t.id as any)}
+                          className={`rounded-2xl border p-3 text-left transition-all duration-200 ${
+                            selected
+                              ? 'border-[#2563eb] bg-[#0f172a] shadow-[0_0_0_1px_rgba(37,99,235,0.2)] dark:border-blue-500 dark:bg-slate-900/70'
+                              : 'border-slate-700 bg-slate-800/40 hover:border-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:hover:border-slate-600'
+                          }`}
+                        >
+                          <div className={`mb-3 flex h-14 items-center justify-center rounded-xl text-sm font-bold ${t.panel}`}>
+                            {t.label}
+                          </div>
+                          <div className={`text-sm font-bold ${selected ? 'text-white' : 'text-slate-200 dark:text-slate-100'}`}>{t.label}</div>
+                          <div className="mt-1 text-[0.7rem] text-slate-400 dark:text-slate-400">{t.desc}</div>
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
 
                 {/* Language */}
                 <div className="space-y-3 border-b border-gray-100 dark:border-slate-800 pb-6">
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400">App Language</label>
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    className="w-full max-w-sm px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80 text-sm font-semibold text-gray-700 dark:text-slate-300 outline-none focus:border-[#2563eb]"
-                  >
-                    <option value="en-US">English (United States)</option>
-                    <option value="en-GB">English (United Kingdom)</option>
-                    <option value="hi-IN">Hindi (हिंदी)</option>
-                    <option value="es-ES">Spanish (Español)</option>
-                    <option value="fr-FR">French (Français)</option>
-                  </select>
+                  <label className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-400">App Language</label>
+                  <div className="relative max-w-lg">
+                    <select
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value)}
+                      className="w-full appearance-none rounded-2xl border border-slate-700 bg-slate-800/80 px-4 py-3 pr-10 text-sm font-semibold text-slate-100 outline-none transition-colors focus:border-[#2563eb] focus:ring-2 focus:ring-blue-500/20 dark:bg-slate-800/80"
+                    >
+                      <option value="en-US">English (United States)</option>
+                      <option value="en-GB">English (United Kingdom)</option>
+                      <option value="hi-IN">Hindi (हिंदी)</option>
+                      <option value="es-ES">Spanish (Español)</option>
+                      <option value="fr-FR">French (Français)</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 9l6 6 6-6" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Startup & System Toggles */}
@@ -445,67 +457,57 @@ export function SettingsView({
                 </div>
 
                 {/* Profile Card */}
-                <div className="flex items-center gap-5 p-5 rounded-2xl bg-gradient-to-r from-blue-50/50 via-white to-gray-50 dark:from-slate-800/60 dark:via-slate-800/40 dark:to-slate-900/60 border border-blue-100/60 dark:border-slate-700 shadow-sm">
+                <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-slate-700 dark:bg-slate-800/70">
                   <div className="relative group">
-                    <Avatar name={me?.name || 'User'} src={me?.avatarUrl} size={76} online={me?.isOnline} />
+                    <Avatar name={me?.name || 'User'} src={me?.avatarUrl} size={64} online={me?.isOnline} />
                     {profileFileRef && (
                       <button
                         onClick={() => profileFileRef.current?.click()}
                         disabled={uploadingAvatar}
-                        className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-bold border-none cursor-pointer"
+                        className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-[0.65rem] font-bold border-none cursor-pointer"
                       >
                         {uploadingAvatar ? '...' : 'Change'}
                       </button>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-base font-extrabold text-gray-900 dark:text-slate-100 m-0 truncate">{me?.name || 'User'}</h4>
-                      <span className="px-2 py-0.5 rounded-full text-[0.7rem] font-extrabold bg-[#2563eb] text-white">PRO</span>
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-slate-400 font-medium truncate mt-0.5">{me?.email || 'user@synexa.com'}</p>
-                    <div className="mt-2.5 flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Online & Ready</span>
+                    <h4 className="m-0 truncate text-base font-bold text-gray-900 dark:text-slate-100">{me?.name || 'User'}</h4>
+                    <p className="mt-1 truncate text-xs font-medium text-gray-500 dark:text-slate-400">{me?.email || 'user@synexa.com'}</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Online & Ready</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Edit Display Name */}
-                <div className="space-y-2 border-b border-gray-100 dark:border-slate-800 pb-6">
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Display Name</label>
-                  <div className="flex gap-3 max-w-md">
-                    <input
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      placeholder="Your full name"
-                      className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80 text-sm font-semibold text-gray-800 dark:text-slate-200 outline-none focus:border-[#2563eb] transition-colors"
-                    />
-                    <button
-                      onClick={handleSaveProfile}
-                      disabled={savingProfile}
-                      className="px-5 py-2.5 rounded-xl border-none bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] text-white text-xs font-extrabold cursor-pointer hover:shadow-md transition-all disabled:opacity-50"
-                    >
+                <div className="grid grid-cols-1 gap-2.5 border-b border-gray-100 pb-5 dark:border-slate-800 sm:grid-cols-[150px_minmax(0,1fr)] sm:gap-6">
+                  <label className="pt-3 text-xs font-bold text-gray-500 dark:text-slate-400">Display name</label>
+                  <div className="flex max-w-xl flex-col gap-2 sm:flex-row">
+                    <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Your full name" className="h-11 min-w-0 flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3.5 text-sm font-medium text-gray-800 outline-none transition-colors placeholder:text-gray-400 focus:border-[#2563eb] focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 dark:placeholder:text-slate-500" />
+                    <button onClick={handleSaveProfile} disabled={savingProfile} className="h-11 rounded-lg border-none bg-[#2563eb] px-5 text-sm font-bold text-white cursor-pointer transition-colors hover:bg-blue-700 disabled:opacity-60 sm:min-w-24">
                       {savingProfile ? 'Saving…' : 'Save'}
                     </button>
                   </div>
                 </div>
 
                 {/* Status message */}
-                <div className="space-y-2 border-b border-gray-100 dark:border-slate-800 pb-6">
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Status Message</label>
-                  <input
-                    value={statusMessage}
-                    onChange={(e) => setStatusMessage(e.target.value)}
-                    placeholder="What are you working on?"
-                    className="w-full max-w-md px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80 text-sm font-medium text-gray-800 dark:text-slate-200 outline-none focus:border-[#2563eb]"
-                  />
+                <div className="grid grid-cols-1 gap-2.5 border-b border-gray-100 pb-5 dark:border-slate-800 sm:grid-cols-[150px_minmax(0,1fr)] sm:gap-6">
+                  <label className="pt-3 text-xs font-bold text-gray-500 dark:text-slate-400">Status message</label>
+                  <div className="max-w-xl">
+                    <div className="relative flex h-11 items-center rounded-lg border border-gray-200 bg-gray-50 transition-colors focus-within:border-[#2563eb] focus-within:ring-2 focus-within:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-800/80">
+                      <MessageCircle size={16} className="ml-3.5 shrink-0 text-gray-400 dark:text-slate-500" />
+                      <input value={statusMessage} maxLength={80} onChange={(e) => setStatusMessage(e.target.value)} placeholder="Share what you're up to…" className="h-full min-w-0 flex-1 border-0 bg-transparent px-2.5 text-sm font-medium text-gray-800 outline-none placeholder:text-gray-400 dark:text-slate-100 dark:placeholder:text-slate-500" />
+                      <span className="pr-3 text-[0.68rem] font-medium tabular-nums text-gray-400 dark:text-slate-500">{statusMessage.length}/80</span>
+                    </div>
+                    <p className="mt-1.5 text-xs text-gray-400 dark:text-slate-500">A short note others see on your profile.</p>
+                  </div>
                 </div>
 
                 {/* Availability */}
-                <div className="space-y-3">
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Availability Presence</label>
-                  <div className="grid grid-cols-2 gap-2.5 max-w-md">
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-[150px_minmax(0,1fr)] sm:gap-6">
+                  <label className="pt-2 text-xs font-bold text-gray-500 dark:text-slate-400">Availability</label>
+                  <div className="grid max-w-xl grid-cols-1 gap-2 sm:grid-cols-2">
                     {[
                       { id: 'online', label: 'Available', dot: 'bg-emerald-500' },
                       { id: 'busy', label: 'Busy', dot: 'bg-blue-500' },
@@ -515,13 +517,13 @@ export function SettingsView({
                       <button
                         key={s.id}
                         onClick={() => setStatusState(s.id as any)}
-                        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
+                        className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-sm font-semibold cursor-pointer transition-all ${
                           statusState === s.id
-                            ? 'border-[#2563eb] bg-blue-50/50 dark:bg-blue-900/30 text-[#2563eb] dark:text-blue-400'
-                            : 'border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80 text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                            ? 'border-[#2563eb] bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                            : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-700'
                         }`}
                       >
-                        <span className={`w-2.5 h-2.5 rounded-full ${s.dot}`}></span>
+                        <span className={`w-3 h-3 rounded-full ${s.dot}`}></span>
                         {s.label}
                       </button>
                     ))}

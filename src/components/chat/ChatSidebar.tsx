@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Room, User } from '../../types/chat'
-import { Check, CheckSquare, Sparkles, Square } from 'lucide-react'
+import { Check, CheckSquare, Sparkles, Square, Trash2 } from 'lucide-react'
 import { IcoMoreVert } from '../common/Icons'
 import { IconBtn } from '../common/IconBtn'
 import { RoomItem } from './RoomItem'
@@ -101,16 +101,25 @@ export function ChatSidebar({
               <IcoMoreVert />
             </IconBtn>
             {actionsOpen && (
-              <div role="menu" className="absolute right-0 top-11 z-[200] w-48 overflow-hidden rounded-xl border border-gray-200 bg-white p-1 shadow-[0_12px_32px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-800">
+              <div role="menu" className="absolute right-0 top-11 z-[200] w-52 overflow-hidden rounded-xl border border-gray-200 bg-white p-1.5 shadow-[0_12px_32px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-800">
                 {!selectionMode ? (
-                  <button type="button" role="menuitem" onClick={() => { setActionsOpen(false); setSelectionMode(true) }} className="flex h-10 w-full items-center gap-3 rounded-lg border-0 bg-transparent px-3 text-left text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-700">
-                    <CheckSquare size={17} className="text-gray-500 dark:text-slate-400" /> Select chats
-                  </button>
+                  <>
+                    <button type="button" role="menuitem" onClick={() => { setActionsOpen(false); setSelectionMode(true) }} className="flex h-10 w-full items-center gap-3 rounded-lg border-0 bg-transparent px-3 text-left text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-700">
+                      <CheckSquare size={17} className="text-gray-500 dark:text-slate-400" /> Select chats
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => { setActionsOpen(false); toggleVisibleSelection() }} className="flex h-10 w-full items-center gap-3 rounded-lg border-0 bg-transparent px-3 text-left text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-700">
+                      {visibleRoomsSelected ? <Square size={17} className="text-gray-500 dark:text-slate-400" /> : <CheckSquare size={17} className="text-gray-500 dark:text-slate-400" />}
+                      {visibleRoomsSelected ? 'Clear all' : 'Select all'}
+                    </button>
+                  </>
                 ) : (
                   <>
                     <button type="button" role="menuitem" onClick={() => { setActionsOpen(false); toggleVisibleSelection() }} className="flex h-10 w-full items-center gap-3 rounded-lg border-0 bg-transparent px-3 text-left text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-700">
                       {visibleRoomsSelected ? <Square size={17} className="text-gray-500 dark:text-slate-400" /> : <CheckSquare size={17} className="text-gray-500 dark:text-slate-400" />}
-                      {visibleRoomsSelected ? 'Clear visible' : 'Select visible'}
+                      {visibleRoomsSelected ? 'Clear all' : 'Select all'}
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => { setActionsOpen(false); deleteSelectedRooms() }} disabled={selectedRooms.length === 0} className="flex h-10 w-full items-center gap-3 rounded-lg border-0 bg-red-50 px-3 text-left text-sm font-semibold text-red-600 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-900/40 dark:disabled:bg-slate-800 dark:disabled:text-slate-500">
+                      <Trash2 size={17} /> Delete selected
                     </button>
                     <button type="button" role="menuitem" onClick={() => { setActionsOpen(false); exitSelectionMode() }} className="flex h-10 w-full items-center gap-3 rounded-lg border-0 bg-transparent px-3 text-left text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-700">
                       <span className="w-[17px] text-center text-gray-500 dark:text-slate-400">×</span> Cancel
@@ -124,11 +133,24 @@ export function ChatSidebar({
       </div>
 
       {selectionMode && (
-        <div className="mx-4 mt-1 flex min-h-11 items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-800">
-          <span className="text-xs font-semibold text-gray-600 dark:text-slate-300">{selectedRooms.length} selected</span>
-          <button type="button" onClick={deleteSelectedRooms} disabled={selectedRooms.length === 0} className="inline-flex h-7 items-center gap-1.5 rounded-md border-0 bg-red-600 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-slate-700">
-            <Check size={14} /> Delete{selectedRooms.length > 0 ? ` (${selectedRooms.length})` : ''}
-          </button>
+        <div className="mx-4 mt-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 shadow-[0_2px_8px_rgba(15,23,42,0.04)] dark:border-slate-700 dark:bg-slate-800/80">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2563eb] text-white shadow-[0_6px_18px_rgba(37,99,235,0.25)]">
+                <Check size={15} />
+              </div>
+              <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{selectedRooms.length} selected</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={deleteSelectedRooms}
+              disabled={selectedRooms.length === 0}
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-[0.72rem] font-bold text-white shadow-[0_6px_16px_rgba(239,68,68,0.2)] transition-all hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none dark:disabled:bg-slate-700"
+            >
+              <Trash2 size={13} /> Delete
+            </button>
+          </div>
         </div>
       )}
 
