@@ -7,6 +7,7 @@ import { sortRooms, roomName, otherUser, roomAvatar } from '../utils/chatHelpers
 import { NewChatModal } from '../components/chat/NewChatModal'
 import { ChatSidebar } from '../components/chat/ChatSidebar'
 import { ChatArea } from '../components/chat/ChatArea'
+import { Avatar } from '../components/common/Avatar'
 import { AIChatView } from '../components/chat/AIChatView'
 import { ProfileSidebar } from '../components/profile/ProfileSidebar'
 import { ContactInfoSidebar } from '../components/profile/ContactInfoSidebar'
@@ -30,9 +31,50 @@ type ConfirmAction = {
   run: () => void | Promise<void>
 }
 
+function withDeliveryStatus(message: Message, room: Room | undefined, userId: string | undefined): Message {
+  if (message.senderId !== userId || message.status === 'seen' || !message.deliveredTo) return message
+
+  const recipientIds = room?.members
+    .map(member => member.userId)
+    .filter(memberId => memberId !== message.senderId) ?? []
+  const allRecipientsReceived = recipientIds.length > 0 &&
+    recipientIds.every(recipientId => message.deliveredTo?.includes(recipientId))
+
+  return allRecipientsReceived ? { ...message, status: 'delivered' } : message
+}
+
+function updateRoomPresence(room: Room, userId: string, isOnline: boolean): Room {
+  let changed = false
+  const members = room.members.map(member => {
+    if (member.userId !== userId || member.user.isOnline === isOnline) return member
+    changed = true
+    return {
+      ...member,
+      user: {
+        ...member.user,
+        isOnline,
+        lastSeenAt: isOnline ? member.user.lastSeenAt : new Date().toISOString(),
+      },
+    }
+  })
+  return changed ? { ...room, members } : room
+}
+
+function applyRoomPresenceSnapshot(room: Room, onlineUserIds: Set<string>): Room {
+  let changed = false
+  const members = room.members.map(member => {
+    const isOnline = onlineUserIds.has(member.userId)
+    if (member.user.isOnline === isOnline) return member
+    changed = true
+    return { ...member, user: { ...member.user, isOnline } }
+  })
+  return changed ? { ...room, members } : room
+}
+
 export function HomePage() {
   const [me, setMe] = useState<User | null>(null)
   const [rooms, setRooms] = useState<Room[]>([])
+  const roomsRef = useRef<Room[]>([])
   const [activeRoom, setActiveRoom] = useState<Room | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [nextCursor, setNextCursor] = useState<string | null>(null)
@@ -66,7 +108,15 @@ export function HomePage() {
   const attachMenuRef = useRef<HTMLDivElement>(null)
   const imgFileRef = useRef<HTMLInputElement>(null)
   const docFileRef = useRef<HTMLInputElement>(null)
-  const [toast, setToast] = useState<{ message: string; id: string; notificationId?: string } | null>(null)
+  const [toast, setToast] = useState<{
+    message: string
+    id: string
+    title?: string
+    avatarName?: string
+    avatarUrl?: string | null
+    roomId?: string
+    notificationId?: string
+  } | null>(null)
   const [missedCallNotifications, setMissedCallNotifications] = useState<Notification[]>([])
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const showCallNotice = useCallback((message: string) => {
@@ -99,6 +149,7 @@ export function HomePage() {
   const activeRef = useRef<Room | null>(null)
   const meRef = useRef<User | null>(null)
   const pendingMessages = useRef(new Map<string, string>())
+  const locallySeenMessageIds = useRef(new Set<string>())
   const newMessageTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const scrollToBottom = useCallback((smooth = false) => {
@@ -132,6 +183,7 @@ export function HomePage() {
     }, 12000)
   }, [])
 
+  useEffect(() => { roomsRef.current = rooms }, [rooms])
   useEffect(() => { activeRef.current = activeRoom }, [activeRoom])
   useEffect(() => { meRef.current = me }, [me])
 
@@ -170,20 +222,43 @@ export function HomePage() {
     setNextCursor(null)
     setLoadingMsgs(true)
     setShowSidebar(false)
-    setUnreadCounts(prev => ({ ...prev, [room.id]: 0 }))
     try {
       const { messages: msgs, nextCursor: cur } = await chatService.getMessages(room.id, undefined, 30)
-      const chronologicalMessages = msgs.slice().reverse()
+      const chronologicalMessages = msgs.slice().reverse().map(message =>
+        locallySeenMessageIds.current.has(message.id) ? { ...message, status: 'seen' as const } : message
+      )
       setMessages(chronologicalMessages)
       setNextCursor(cur)
 
-      const unseenIds = msgs.filter(m => m.senderId !== me?.id && m.status !== 'seen').map(m => m.id)
+      const unseenIds = chronologicalMessages
+        .filter(message =>
+          message.senderId !== me?.id &&
+          message.status !== 'seen' &&
+          !locallySeenMessageIds.current.has(message.id)
+        )
+        .map(message => message.id)
       const firstUnread = chronologicalMessages.find(message => unseenIds.includes(message.id))
       if (firstUnread) showNewMessageDivider(firstUnread.id)
       if (unseenIds.length > 0) {
-        chatService.markSeen(room.id, unseenIds).catch(() => { })
-        socketService.emitSeen(room.id, unseenIds)
+        unseenIds.forEach(messageId => locallySeenMessageIds.current.add(messageId))
+        const newlySeenIds = new Set(unseenIds)
+        setMessages(previous => previous.map(message =>
+          newlySeenIds.has(message.id) ? { ...message, status: 'seen' as const } : message
+        ))
+        setRooms(previous => previous.map(existingRoom => existingRoom.id === room.id
+          ? {
+              ...existingRoom,
+              messages: existingRoom.messages.map(message =>
+                newlySeenIds.has(message.id) ? { ...message, status: 'seen' as const } : message
+              ),
+            }
+          : existingRoom
+        ))
+        if (!socketService.emitSeen(room.id, unseenIds)) {
+          chatService.markSeen(room.id, unseenIds).catch(error => console.error('Failed to mark messages as seen:', error))
+        }
       }
+      setUnreadCounts(previous => ({ ...previous, [room.id]: 0 }))
     } catch { /**/ }
     setLoadingMsgs(false)
     requestAnimationFrame(() => scrollToBottom(false))
@@ -232,6 +307,7 @@ export function HomePage() {
         }).catch(() => {})
 
         socketService.connect()
+        socketService.syncPresence()
         list.forEach(room => {
           socketService.joinRoom(room.id)
           // Silently fetch the latest message to fix missing read/delivered statuses from /api/rooms
@@ -251,13 +327,17 @@ export function HomePage() {
       const messageKey = `${msg.roomId}|${msg.senderId}|${msg.text ?? ''}|${msg.fileUrl ?? ''}`
       const optimisticId = pendingMessages.current.get(messageKey)
       const wasOptimistic = Boolean(optimisticId)
+      const room = activeRef.current?.id === msg.roomId
+        ? activeRef.current
+        : roomsRef.current.find(candidate => candidate.id === msg.roomId)
+      const messageWithStatus = withDeliveryStatus(msg, room ?? undefined, meRef.current?.id)
 
       if (optimisticId) {
         pendingMessages.current.delete(messageKey)
         if (activeRef.current?.id === msg.roomId) animateMessage(msg.id)
         setMessages(prev => prev.map(message =>
           message.id === optimisticId
-            ? { ...message, ...msg, status: msg.status ?? 'sent' }
+            ? { ...message, ...messageWithStatus, status: messageWithStatus.status ?? 'sent' }
             : message
         ))
       }
@@ -268,7 +348,7 @@ export function HomePage() {
           chatService.getRooms().then(list => setRooms(sortRooms(list))).catch(() => { })
           return prev
         }
-        const updated = { ...existing, messages: [msg, ...existing.messages] }
+        const updated = { ...existing, messages: [messageWithStatus, ...existing.messages] }
         return sortRooms([updated, ...prev.filter(r => r.id !== msg.roomId)])
       })
 
@@ -276,12 +356,24 @@ export function HomePage() {
 
       if (msg.senderId !== meRef.current?.id) {
         if (activeRef.current?.id === msg.roomId) {
-          chatService.markSeen(msg.roomId, [msg.id]).catch(() => { })
-          socketService.emitSeen(msg.roomId, [msg.id])
+          locallySeenMessageIds.current.add(msg.id)
+          if (!socketService.emitSeen(msg.roomId, [msg.id])) {
+            chatService.markSeen(msg.roomId, [msg.id]).catch(error => console.error('Failed to mark message as seen:', error))
+          }
           showNewMessageDivider(msg.id)
         } else {
           socketService.emitDelivered(msg.roomId, [msg.id])
           setUnreadCounts(prev => ({ ...prev, [msg.roomId]: (prev[msg.roomId] || 0) + 1 }))
+          if (toastTimer.current) clearTimeout(toastTimer.current)
+          setToast({
+            id: msg.id,
+            roomId: msg.roomId,
+            title: msg.sender.name,
+            avatarName: msg.sender.name,
+            avatarUrl: msg.sender.avatarUrl,
+            message: msg.text?.trim() || 'Sent you an attachment',
+          })
+          toastTimer.current = setTimeout(() => setToast(null), 7000)
         }
       }
 
@@ -329,14 +421,14 @@ export function HomePage() {
     const handleDelivered = (payload: any) => {
       const { roomId, messageIds } = payload;
       setMessages(prev => prev.map(m => {
-        if (messageIds && Array.isArray(messageIds) && messageIds.includes(m.id)) return { ...m, status: 'delivered' as const };
+        if (messageIds && Array.isArray(messageIds) && messageIds.includes(m.id) && m.senderId === meRef.current?.id && m.status !== 'seen') return { ...m, status: 'delivered' as const };
         if ((!messageIds || messageIds.length === 0) && (!roomId || m.roomId === roomId) && m.senderId === meRef.current?.id && m.status !== 'seen' && m.status !== 'delivered') return { ...m, status: 'delivered' as const };
         return m;
       }))
       setRooms(prev => prev.map(r => {
         let changed = false;
         const newMsgs = r.messages.map(m => {
-          if (messageIds && Array.isArray(messageIds) && messageIds.includes(m.id)) { changed = true; return { ...m, status: 'delivered' as const }; }
+          if (messageIds && Array.isArray(messageIds) && messageIds.includes(m.id) && m.senderId === meRef.current?.id && m.status !== 'seen') { changed = true; return { ...m, status: 'delivered' as const }; }
           if ((!messageIds || messageIds.length === 0) && (!roomId || r.id === roomId) && m.senderId === meRef.current?.id && m.status !== 'seen' && m.status !== 'delivered') { changed = true; return { ...m, status: 'delivered' as const }; }
           return m;
         });
@@ -345,17 +437,25 @@ export function HomePage() {
     }
 
     const handleSeen = (payload: any) => {
-      const { roomId, messageIds } = payload;
+      const { roomId } = payload;
+      const messageIds: string[] = Array.isArray(payload.messageIds)
+        ? payload.messageIds
+        : Array.isArray(payload.entries)
+          ? payload.entries.map((entry: { messageId: string }) => entry.messageId)
+          : [];
+      const seenIds = new Set(messageIds);
       setMessages(prev => prev.map(m => {
-        if (messageIds && Array.isArray(messageIds) && messageIds.includes(m.id)) return { ...m, status: 'seen' as const };
-        if ((!messageIds || messageIds.length === 0) && (!roomId || m.roomId === roomId) && m.senderId === meRef.current?.id && m.status !== 'seen') return { ...m, status: 'seen' as const };
+        if (m.senderId !== meRef.current?.id) return m;
+        if (seenIds.has(m.id)) return { ...m, status: 'seen' as const };
+        if (messageIds.length === 0 && (!roomId || m.roomId === roomId) && m.status !== 'seen') return { ...m, status: 'seen' as const };
         return m;
       }))
       setRooms(prev => prev.map(r => {
         let changed = false;
         const newMsgs = r.messages.map(m => {
-          if (messageIds && Array.isArray(messageIds) && messageIds.includes(m.id)) { changed = true; return { ...m, status: 'seen' as const }; }
-          if ((!messageIds || messageIds.length === 0) && (!roomId || r.id === roomId) && m.senderId === meRef.current?.id && m.status !== 'seen') { changed = true; return { ...m, status: 'seen' as const }; }
+          if (m.senderId !== meRef.current?.id) return m;
+          if (seenIds.has(m.id)) { changed = true; return { ...m, status: 'seen' as const }; }
+          if (messageIds.length === 0 && (!roomId || r.id === roomId) && m.status !== 'seen') { changed = true; return { ...m, status: 'seen' as const }; }
           return m;
         });
         return changed ? { ...r, messages: newMsgs } : r;
@@ -370,16 +470,55 @@ export function HomePage() {
       setTypingUsers(prev => ({ ...prev, [roomId]: (prev[roomId] ?? []).filter(n => n !== userName) }))
     }
 
+    const updatePresence = (userId: string, isOnline: boolean) => {
+      setRooms(previous => previous.map(room => updateRoomPresence(room, userId, isOnline)))
+      setActiveRoom(previous => previous ? updateRoomPresence(previous, userId, isOnline) : previous)
+      setMe(previous => previous?.id === userId
+        ? {
+            ...previous,
+            isOnline,
+            lastSeenAt: isOnline ? previous.lastSeenAt : new Date().toISOString(),
+          }
+        : previous
+      )
+    }
+    const handleUserOnline = (userId: string) => updatePresence(userId, true)
+    const handleUserOffline = (userId: string) => updatePresence(userId, false)
+    const handlePresenceSnapshot = (userIds: string[]) => {
+      const onlineUserIds = new Set(userIds)
+      setRooms(previous => previous.map(room => applyRoomPresenceSnapshot(room, onlineUserIds)))
+      setActiveRoom(previous => previous ? applyRoomPresenceSnapshot(previous, onlineUserIds) : previous)
+      setMe(previous => previous
+        ? { ...previous, isOnline: onlineUserIds.has(previous.id) }
+        : previous
+      )
+    }
+
     const handleNotification = (n: Notification) => {
       if (toastTimer.current) clearTimeout(toastTimer.current)
       if (n.type === 'missed_call') {
         setMissedCallNotifications(previous => [n, ...previous.filter(notification => notification.id !== n.id)])
       }
-      setToast({ message: n.message, id: n.id, notificationId: n.id })
-      if (n.type !== 'missed_call') {
-        toastTimer.current = setTimeout(() => setToast(null), 4000)
+        if (n.type === 'message' && n.payload?.roomId) {
+          const room = roomsRef.current.find(candidate => candidate.id === n.payload?.roomId)
+          const sender = room?.members.find(member => member.userId === n.payload?.senderId)?.user
+          const senderName = sender?.name ?? room?.name ?? 'New message'
+          const preview = n.payload.text?.trim() || 'Sent you an attachment'
+          setToast({
+            message: preview,
+            id: n.id,
+            title: senderName,
+            avatarName: senderName,
+            avatarUrl: sender?.avatarUrl,
+            roomId: n.payload.roomId,
+          })
+        } else {
+          setToast({ message: n.message, id: n.id, notificationId: n.id })
+        }
+        if (n.type !== 'missed_call') {
+          toastTimer.current = setTimeout(() => setToast(null), n.type === 'message' ? 7000 : 4000)
+        }
       }
-    }
 
     socketService.onNewMessage(handleNewMessage)
     socketService.onMessageDeleted(handleMessageDeleted)
@@ -388,6 +527,9 @@ export function HomePage() {
     socketService.onSeen(handleSeen)
     socketService.onTypingStart(handleTypingStart)
     socketService.onTypingStop(handleTypingStop)
+    socketService.onUserOnline(handleUserOnline)
+    socketService.onUserOffline(handleUserOffline)
+    socketService.onPresenceSnapshot(handlePresenceSnapshot)
     socketService.onNotification(handleNotification)
 
     return () => {
@@ -398,6 +540,9 @@ export function HomePage() {
       socketService.offSeen(handleSeen)
       socketService.offTypingStart(handleTypingStart)
       socketService.offTypingStop(handleTypingStop)
+      socketService.offUserOnline(handleUserOnline)
+      socketService.offUserOffline(handleUserOffline)
+      socketService.offPresenceSnapshot(handlePresenceSnapshot)
       socketService.offNotification(handleNotification)
     }
   }, [animateMessage, showNewMessageDivider])
@@ -547,13 +692,10 @@ export function HomePage() {
   const send = async (customFileUrl?: string, customFileType?: string) => {
     if (customFileUrl) {
       if (!activeRoom) return
-      if (!socketService.isConnected()) {
-        setSendError('Realtime connection is not ready. Please try again.')
-        return
-      }
       setSending(true)
       setSendError(null)
       try {
+        await socketService.waitUntilConnected()
         const messageKey = `${activeRoom.id}|${me?.id ?? ''}||${customFileUrl}`
         const optimisticId = `pending-${Date.now()}`
         pendingMessages.current.set(messageKey, optimisticId)
@@ -565,16 +707,14 @@ export function HomePage() {
             createdAt: new Date().toISOString(), status: 'sent' as const, sender: me,
           }])
         }
-      } catch { }
+      } catch (error) {
+        setSendError(error instanceof Error ? error.message : 'Unable to send message.')
+      }
       setSending(false)
       return
     }
 
     if (!activeRoom || (!inputText.trim() && !attachedFile)) return
-    if (!socketService.isConnected()) {
-      setSendError('Realtime connection is not ready. Please try again.')
-      return
-    }
     setSending(true)
     const text = inputText.trim()
     setSendError(null)
@@ -589,6 +729,7 @@ export function HomePage() {
         finalFileType = uploaded.fileType
       }
 
+      await socketService.waitUntilConnected()
       const messageKey = `${activeRoom.id}|${me?.id ?? ''}|${text}|${finalFileUrl ?? ''}`
       const optimisticId = `pending-${Date.now()}`
       pendingMessages.current.set(messageKey, optimisticId)
@@ -971,15 +1112,45 @@ export function HomePage() {
           onClick={() => {
             if (toastTimer.current) clearTimeout(toastTimer.current)
             setToast(null)
-            if (toast.notificationId) {
+            if (toast.roomId) {
+              const room = roomsRef.current.find(candidate => candidate.id === toast.roomId)
+              if (room) {
+                void openRoom(room)
+              } else {
+                void chatService.getRoom(toast.roomId)
+                  .then(openRoom)
+                  .catch(error => showCallNotice(error instanceof Error ? error.message : 'Unable to open this chat.'))
+              }
+            } else if (toast.notificationId) {
               void markCallNotificationRead(toast.notificationId)
             }
           }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[99999] bg-[#1f2937] text-white px-5 py-3 rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.25)] text-sm font-medium animate-[toastIn_0.3s_ease-out] max-w-[min(420px,calc(100vw-2rem))] text-left cursor-pointer border-0 flex items-center gap-4"
-          aria-label={toast.notificationId ? 'Mark notification as read' : 'Dismiss call message'}
+          className={toast.roomId
+            ? 'message-toast fixed top-4 right-4 left-4 sm:left-auto sm:w-[min(390px,calc(100vw-2rem))] z-[99999] flex items-center gap-3.5 rounded-2xl border border-white/70 bg-white/75 p-3.5 text-left text-sm text-slate-900 shadow-[0_16px_48px_rgba(15,23,42,0.2)] backdrop-blur-2xl cursor-pointer dark:border-white/10 dark:bg-slate-900/75 dark:text-white'
+            : 'fixed bottom-6 left-1/2 z-[99999] flex max-w-[min(420px,calc(100vw-2rem))] -translate-x-1/2 items-center gap-4 rounded-xl border-0 bg-[#1f2937] px-5 py-3 text-left text-sm font-medium text-white shadow-[0_4px_20px_rgba(0,0,0,0.25)] animate-[toastIn_0.3s_ease-out] cursor-pointer'}
+          aria-label={toast.roomId ? `Open chat${toast.title ? ` with ${toast.title}` : ''}` : toast.notificationId ? 'Mark notification as read' : 'Dismiss call message'}
         >
-          <span>{toast.message}</span>
-          <span className="shrink-0 text-xs text-red-200">{toast.notificationId ? 'Mark read' : 'Dismiss'}</span>
+          {toast.roomId ? (
+            <>
+              <span className="relative shrink-0">
+                <Avatar name={toast.avatarName ?? toast.title ?? 'New message'} src={toast.avatarUrl} size={48} />
+                <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-blue-500 dark:border-slate-900" />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className="flex min-w-0 items-center justify-between gap-3">
+                  {toast.title && <span className="truncate font-bold">{toast.title}</span>}
+                  <span className="shrink-0 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-blue-600 dark:text-blue-400">New message</span>
+                </span>
+                <span className="truncate text-slate-600 dark:text-slate-300">{toast.message}</span>
+                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">Tap to open chat</span>
+              </span>
+            </>
+          ) : (
+            <>
+              <span>{toast.message}</span>
+              <span className="shrink-0 text-xs text-red-200">{toast.notificationId ? 'Mark read' : 'Dismiss'}</span>
+            </>
+          )}
         </button>
       )}
 

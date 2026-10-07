@@ -4,7 +4,7 @@ import { getCallMediaDevices, saveCallMediaDevice } from '../../utils/mediaDevic
 import { Avatar } from '../common/Avatar'
 import { SynexaLogo } from '../common/SynexaLogo'
 import { useTheme } from '../../hooks/useTheme'
-import { Bluetooth, ArrowLeft, MessageCircle } from 'lucide-react'
+import { Bluetooth, ArrowLeft, MessageCircle, X } from 'lucide-react'
 import { chatService } from '../../services/chatService'
 
 export function SettingsView({
@@ -25,6 +25,7 @@ export function SettingsView({
   handleProfileAvatarUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void
   uploadingAvatar?: boolean
 }) {
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<
     'general' | 'accounts' | 'privacy' | 'notifications' | 'chat' | 'devices' | 'about'
   >('general')
@@ -459,12 +460,22 @@ export function SettingsView({
                 {/* Profile Card */}
                 <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-slate-700 dark:bg-slate-800/70">
                   <div className="relative group">
-                    <Avatar name={me?.name || 'User'} src={me?.avatarUrl} size={64} online={me?.isOnline} />
+                    <button
+                      type="button"
+                      onClick={() => setImagePreviewOpen(true)}
+                      aria-label="View profile photo"
+                      className="block rounded-full border-0 bg-transparent p-0 cursor-zoom-in"
+                    >
+                      <Avatar name={me?.name || 'User'} src={me?.avatarUrl} size={64} online={me?.isOnline} />
+                    </button>
                     {profileFileRef && (
                       <button
-                        onClick={() => profileFileRef.current?.click()}
+                        onClick={() => {
+                          profileFileRef.current?.click()
+                        }}
                         disabled={uploadingAvatar}
-                        className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-[0.65rem] font-bold border-none cursor-pointer"
+                        aria-label="Change profile photo"
+                        className="absolute -bottom-1 -right-1 rounded-full border-2 border-white bg-[#2563eb] px-1.5 py-1 text-[0.55rem] font-bold text-white shadow dark:border-slate-800"
                       >
                         {uploadingAvatar ? '...' : 'Change'}
                       </button>
@@ -483,9 +494,9 @@ export function SettingsView({
                 {/* Edit Display Name */}
                 <div className="grid grid-cols-1 gap-2.5 border-b border-gray-100 pb-5 dark:border-slate-800 sm:grid-cols-[150px_minmax(0,1fr)] sm:gap-6">
                   <label className="pt-3 text-xs font-bold text-gray-500 dark:text-slate-400">Display name</label>
-                  <div className="flex max-w-xl flex-col gap-2 sm:flex-row">
-                    <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Your full name" className="h-11 min-w-0 flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3.5 text-sm font-medium text-gray-800 outline-none transition-colors placeholder:text-gray-400 focus:border-[#2563eb] focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 dark:placeholder:text-slate-500" />
-                    <button onClick={handleSaveProfile} disabled={savingProfile} className="h-11 rounded-lg border-none bg-[#2563eb] px-5 text-sm font-bold text-white cursor-pointer transition-colors hover:bg-blue-700 disabled:opacity-60 sm:min-w-24">
+                  <div className="flex max-w-xl items-center gap-2">
+                    <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Your full name" className="h-10 min-w-0 flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3.5 text-sm font-medium text-gray-800 outline-none transition-colors placeholder:text-gray-400 focus:border-[#2563eb] focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 dark:placeholder:text-slate-500" />
+                    <button onClick={handleSaveProfile} disabled={savingProfile} className="h-9 shrink-0 rounded-lg border-none bg-[#2563eb] px-4 text-xs font-bold text-white cursor-pointer transition-colors hover:bg-blue-700 disabled:opacity-60">
                       {savingProfile ? 'Saving…' : 'Save'}
                     </button>
                   </div>
@@ -881,6 +892,26 @@ export function SettingsView({
           </div>
         </div>
       </div>
+      {imagePreviewOpen && (
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 p-6 backdrop-blur-sm"
+          onClick={() => setImagePreviewOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setImagePreviewOpen(false)}
+            aria-label="Close profile photo preview"
+            className="absolute right-5 top-5 rounded-full border-0 bg-white/15 p-2 text-white hover:bg-white/25"
+          >
+            <X size={20} />
+          </button>
+          <div onClick={event => event.stopPropagation()} className="max-h-[85vh] max-w-[85vw] overflow-hidden rounded-2xl shadow-2xl">
+            {me?.avatarUrl
+              ? <img src={me.avatarUrl} alt={`${me.name}'s profile`} className="max-h-[85vh] max-w-[85vw] object-contain" />
+              : <Avatar name={me?.name || 'User'} size={280} />}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
