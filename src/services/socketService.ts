@@ -3,8 +3,15 @@ import type { Message, Room, Notification } from '../types/chat'
 import { BACKEND_URL } from '../constants/config'
 
 type TypingPayload = { roomId: string; userId: string; userName: string }
-type SeenPayload = { roomId: string; userId: string; messageIds: string[] }
+type SeenPayload = {
+  roomId: string
+  userId: string
+  messageIds?: string[]
+  entries?: { messageId: string; seenAt: string }[]
+}
 type DeliveredPayload = { roomId: string; messageIds: string[] }
+type PresenceListener = (userId: string) => void
+type PresenceSnapshotListener = (userIds: string[]) => void
 export type MessageDeletedPayload = { messageId: string; roomId: string }
 export type CallType = 'audio' | 'video'
 export type CallEndReason = 'rejected' | 'ended' | 'no-answer' | 'disconnected'
@@ -36,6 +43,9 @@ class SocketService {
   private deliveredListeners = new Set<(payload: DeliveredPayload) => void>()
   private messageDeletedListeners = new Set<(payload: MessageDeletedPayload) => void>()
   private notificationListeners = new Set<(n: Notification) => void>()
+  private onlineListeners = new Set<PresenceListener>()
+  private offlineListeners = new Set<PresenceListener>()
+  private presenceSnapshotListeners = new Set<PresenceSnapshotListener>()
   private callListeners = new Map<CallEventName, Set<(payload: CallEventMap[CallEventName]) => void>>()
   private joinedRooms = new Set<string>()
 
@@ -53,10 +63,23 @@ class SocketService {
     this.socket.on('connect', () => {
       console.log('Connected to socket', this.socket?.id)
       this.joinedRooms.forEach(roomId => this.socket?.emit('room:join', roomId))
+      this.syncPresence()
     })
 
     this.socket.on('disconnect', () => {
       console.log('Disconnected from socket')
+    })
+
+    this.socket.on('user:online', (userId: string) => {
+      this.onlineListeners.forEach(listener => listener(userId))
+    })
+
+    this.socket.on('user:offline', (userId: string) => {
+      this.offlineListeners.forEach(listener => listener(userId))
+    })
+
+    this.socket.on('presence:state', (userIds: string[]) => {
+      this.presenceSnapshotListeners.forEach(listener => listener(userIds))
     })
 
     this.socket.on('message:new', (message: Message) => {
@@ -110,7 +133,7 @@ class SocketService {
     if (this.socket?.connected) return Promise.resolve()
     if (!this.socket) this.connect()
     const socket = this.socket
-    if (!socket) return Promise.reject(new Error('No access token is available for calls.'))
+    if (!socket) return Promise.reject(new Error('No access token is available for realtime messaging.'))
 
     return new Promise((resolve, reject) => {
       const onConnect = () => {
@@ -119,7 +142,7 @@ class SocketService {
       }
       const timeout = setTimeout(() => {
         socket.off('connect', onConnect)
-        reject(new Error('Could not connect to the call service.'))
+        reject(new Error('Realtime connection timed out. Check your internet connection and try again.'))
       }, timeoutMs)
       socket.once('connect', onConnect)
       if (socket.connected) onConnect()
@@ -138,6 +161,10 @@ class SocketService {
     return this.socket?.connected ?? false
   }
 
+  syncPresence() {
+    if (this.socket?.connected) this.socket.emit('presence:sync')
+  }
+
   // ── Room ──
   joinRoom(roomId: string) {
     this.joinedRooms.add(roomId)
@@ -153,8 +180,10 @@ class SocketService {
     this.socket?.emit('message:send', { roomId, text, fileUrl, fileType })
   }
 
-  emitSeen(roomId: string, messageIds: string[]) {
-    this.socket?.emit('message:seen', { roomId, messageIds })
+  emitSeen(roomId: string, messageIds: string[]): boolean {
+    if (!this.socket?.connected) return false
+    this.socket.emit('message:seen', { roomId, messageIds })
+    return true
   }
 
   emitDelivered(roomId: string, messageIds: string[]) {
@@ -192,6 +221,13 @@ class SocketService {
   // ── Listeners: seen ──
   onSeen(callback: (p: SeenPayload) => void) { this.seenListeners.add(callback) }
   offSeen(callback: (p: SeenPayload) => void) { this.seenListeners.delete(callback) }
+
+  onUserOnline(callback: PresenceListener) { this.onlineListeners.add(callback) }
+  offUserOnline(callback: PresenceListener) { this.onlineListeners.delete(callback) }
+  onUserOffline(callback: PresenceListener) { this.offlineListeners.add(callback) }
+  offUserOffline(callback: PresenceListener) { this.offlineListeners.delete(callback) }
+  onPresenceSnapshot(callback: PresenceSnapshotListener) { this.presenceSnapshotListeners.add(callback) }
+  offPresenceSnapshot(callback: PresenceSnapshotListener) { this.presenceSnapshotListeners.delete(callback) }
 
   // ── Listeners: typing ──
   onTypingStart(callback: (p: TypingPayload) => void) { this.typingStartListeners.add(callback) }

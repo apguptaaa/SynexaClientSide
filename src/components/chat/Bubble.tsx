@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { Message } from '../../types/chat'
 import { Copy, Trash2 } from 'lucide-react'
 import { seedColor, fmtTime } from '../../utils/chatHelpers'
@@ -36,6 +37,7 @@ function renderTextWithLinks(text: string, isSelf: boolean) {
 export function Bubble({ msg, isSelf, showSender, isLast, onDelete, animate = false }: { msg: Message; isSelf: boolean; showSender: boolean; showTail?: boolean; isLast: boolean; onDelete?: (message: Message) => void; animate?: boolean }) {
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null)
   const longPressTimer = useRef<number | null>(null)
+  const touchStartPosition = useRef<{ x: number; y: number } | null>(null)
   const isImg = msg.fileType?.startsWith('image/')
   const isLocation = msg.fileType === 'location' || (msg.fileUrl && msg.fileUrl.includes('maps.google.com')) || (msg.text && (msg.text.includes('maps.google.com') || msg.text.includes('google.com/maps')))
   const locationUrl = msg.fileUrl || (msg.text && (msg.text.includes('maps.google.com') || msg.text.includes('google.com/maps')) ? msg.text : '')
@@ -56,6 +58,7 @@ export function Bubble({ msg, isSelf, showSender, isLast, onDelete, animate = fa
   const cancelLongPress = () => {
     if (longPressTimer.current !== null) window.clearTimeout(longPressTimer.current)
     longPressTimer.current = null
+    touchStartPosition.current = null
   }
 
   useEffect(() => () => {
@@ -91,22 +94,29 @@ export function Bubble({ msg, isSelf, showSender, isLast, onDelete, animate = fa
         onContextMenu={event => {
           if (!hasMessageActions) return
           event.preventDefault()
+          cancelLongPress()
           openMenu(event.clientX, event.clientY)
         }}
-        onTouchStart={event => {
-          if (!hasMessageActions) return
-          const touch = event.touches[0]
-          if (!touch) return
+        onPointerDown={event => {
+          if (!hasMessageActions || event.pointerType !== 'touch') return
           cancelLongPress()
-          const { clientX, clientY } = touch
+          const { clientX, clientY } = event
+          touchStartPosition.current = { x: clientX, y: clientY }
           longPressTimer.current = window.setTimeout(() => {
             openMenu(clientX, clientY)
             longPressTimer.current = null
-          }, 550)
+          }, 500)
         }}
-        onTouchMove={cancelLongPress}
-        onTouchEnd={cancelLongPress}
-        className={`chat-message-bubble relative max-w-[85%] md:max-w-[520px] flex flex-col ${bgClass} ${isSelf ? 'rounded-[16px_4px_16px_16px]' : 'rounded-[4px_16px_16px_16px]'} px-3.5 py-2.5 shadow-sm ${animate ? 'chat-message-enter' : ''}`}
+        onPointerMove={event => {
+          const startPosition = touchStartPosition.current
+          if (!startPosition || event.pointerType !== 'touch') return
+          if (Math.hypot(event.clientX - startPosition.x, event.clientY - startPosition.y) > 10) cancelLongPress()
+        }}
+        onPointerUp={cancelLongPress}
+        onPointerCancel={cancelLongPress}
+        aria-haspopup={hasMessageActions ? 'menu' : undefined}
+        aria-expanded={menuPosition !== null}
+        className={`chat-message-bubble relative max-w-[85%] md:max-w-[520px] flex flex-col ${bgClass} ${isSelf ? 'rounded-[16px_4px_16px_16px]' : 'rounded-[4px_16px_16px_16px]'} px-3.5 py-2.5 shadow-sm ${menuPosition ? 'ring-2 ring-blue-300/80 shadow-xl' : ''} ${animate ? 'chat-message-enter' : ''}`}
       >
         {showSender && !isSelf && (
           <div className="text-[0.78rem] font-bold mb-1" style={{ color: seedColor(msg.sender.name) }}>
@@ -185,29 +195,43 @@ export function Bubble({ msg, isSelf, showSender, isLast, onDelete, animate = fa
             )}
           </div>
 
-          {menuPosition && (
-            <>
-              <button type="button" aria-label="Close message actions" className="fixed inset-0 z-[300] cursor-default border-0 bg-transparent" onClick={closeMenu} />
-              <div
-                role="menu"
-                className="fixed z-[301] min-w-[190px] overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-xl dark:border-slate-700 dark:bg-slate-800"
-                style={{ left: menuPosition.x, top: menuPosition.y }}
-              >
-                {msg.text && (
-                  <button type="button" role="menuitem" onClick={() => { void copyMessage() }} className="flex w-full items-center gap-3 border-0 bg-transparent px-4 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-slate-200 dark:hover:bg-slate-700">
-                    <Copy size={16} /> Copy text
-                  </button>
-                )}
-                {isSelf && onDelete && (
-                  <button type="button" role="menuitem" onClick={() => { closeMenu(); onDelete(msg) }} className="flex w-full items-center gap-3 border-0 bg-transparent px-4 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30">
-                    <Trash2 size={16} /> Delete message
-                  </button>
-                )}
-              </div>
-            </>
-          )}
         </div>
       </div>
+      {menuPosition && createPortal(
+        <>
+          <button
+            type="button"
+            aria-label="Close message actions"
+            className="fixed inset-0 z-[1000] cursor-default border-0 bg-transparent"
+            onClick={closeMenu}
+            onContextMenu={event => {
+              event.preventDefault()
+              event.stopPropagation()
+            }}
+          />
+          <div
+            role="menu"
+            className="fixed z-[1001] min-w-[190px] overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-xl dark:border-slate-700 dark:bg-slate-800"
+            style={{ left: menuPosition.x, top: menuPosition.y }}
+            onContextMenu={event => {
+              event.preventDefault()
+              event.stopPropagation()
+            }}
+          >
+            {msg.text && (
+              <button type="button" role="menuitem" onClick={() => { void copyMessage() }} className="flex w-full items-center gap-3 border-0 bg-transparent px-4 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-slate-200 dark:hover:bg-slate-700">
+                <Copy size={16} /> Copy text
+              </button>
+            )}
+            {isSelf && onDelete && (
+              <button type="button" role="menuitem" onClick={() => { closeMenu(); onDelete(msg) }} className="flex w-full items-center gap-3 border-0 bg-transparent px-4 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30">
+                <Trash2 size={16} /> Delete message
+              </button>
+            )}
+          </div>
+        </>,
+        document.body,
+      )}
 
       {/* Self avatar (show on last message of group) */}
       {isSelf && (

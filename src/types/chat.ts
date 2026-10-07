@@ -33,6 +33,7 @@ export interface Message {
   fileType: string | null
   createdAt: string
   status?: 'sent' | 'delivered' | 'seen'
+  deliveredTo?: string[]
   deliveredAt?: string
   deliveredTime?: string
   readAt?: string
@@ -83,4 +84,10 @@ export interface Notification {
   message: string
   roomId?: string
   createdAt: string
+  payload?: {
+    roomId?: string
+    messageId?: string
+    senderId?: string
+    text?: string | null
+  }
 }

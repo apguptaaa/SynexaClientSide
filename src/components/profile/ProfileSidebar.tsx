@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { User } from '../../types/chat'
 import { IcoCamera } from '../common/Icons'
 import { Avatar } from '../common/Avatar'
+import { X } from 'lucide-react'
 
 export function ProfileSidebar({
   showProfile,
@@ -39,6 +40,8 @@ export function ProfileSidebar({
   onLogout?: () => void
 }) {
   const [isEditing, setIsEditing] = useState(false)
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false)
+  const activeAvatar = editAvatarUrl || me?.avatarUrl
 
   if (!showProfile) return null
 
@@ -109,9 +112,16 @@ export function ProfileSidebar({
             {/* Clickable Avatar */}
             <div
               className={`relative w-[120px] h-[120px] rounded-full overflow-hidden shadow-[0_8px_32px_rgba(140,8,23,0.2)] ring-4 ring-blue-100 dark:ring-blue-900/50 transition-all duration-300 ${isEditing ? 'cursor-pointer hover:shadow-[0_12px_40px_rgba(140,8,23,0.3)] hover:ring-red-200 group' : ''}`}
-              onClick={() => isEditing && !uploadingAvatar && profileFileRef.current?.click()}
+              onClick={() => {
+                if (isEditing) {
+                  if (!uploadingAvatar) profileFileRef.current?.click()
+                } else {
+                  setImagePreviewOpen(true)
+                }
+              }}
+              title={isEditing ? 'Change photo' : 'View photo'}
             >
-              <Avatar name={editName || me?.name || 'User'} src={editAvatarUrl} size={120} />
+              <Avatar name={editName || me?.name || 'User'} src={activeAvatar} size={120} />
 
               {/* Overlay */}
               {isEditing && (
@@ -253,7 +263,27 @@ export function ProfileSidebar({
           {isEditing && <div className="pb-6"></div>}
         </div>
       </div>
+
+      {imagePreviewOpen && (
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 p-6 backdrop-blur-sm"
+          onClick={() => setImagePreviewOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setImagePreviewOpen(false)}
+            aria-label="Close profile photo preview"
+            className="absolute right-5 top-5 rounded-full border-0 bg-white/15 p-2 text-white hover:bg-white/25"
+          >
+            <X size={20} />
+          </button>
+          <div onClick={event => event.stopPropagation()} className="max-h-[85vh] max-w-[85vw] overflow-hidden rounded-2xl shadow-2xl">
+            {activeAvatar
+              ? <img src={activeAvatar} alt={`${editName || me?.name || 'User'}'s profile`} className="max-h-[85vh] max-w-[85vw] object-contain" />
+              : <Avatar name={editName || me?.name || 'User'} size={280} />}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
-
