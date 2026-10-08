@@ -65,7 +65,7 @@ export function SignupPage() {
         localStorage.setItem('refreshToken', data.refreshToken)
       }
 
-      window.location.href = '/home'
+      window.location.replace('/home')
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message || 'An error occurred during registration')
@@ -116,7 +116,7 @@ export function SignupPage() {
               localStorage.setItem('refreshToken', data.refreshToken)
             }
 
-            window.location.href = '/home'
+            window.location.replace('/home')
           } catch (err: unknown) {
             if (err instanceof Error) {
               setError(err.message || 'Google signup failed')

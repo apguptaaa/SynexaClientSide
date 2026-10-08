@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { User } from '../../types/chat'
 import { IcoCamera } from '../common/Icons'
 import { Avatar } from '../common/Avatar'
@@ -254,33 +255,45 @@ export function ProfileView({
 
       {/* ── Image Preview Modal ───────────────────────────────── */}
       {imageModalOpen && (
-        <div
-          className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.15s_ease-out]"
-          onClick={() => setImageModalOpen(false)}
-        >
+        createPortal(
           <div
-            className="relative max-w-[320px] w-full flex flex-col items-center animate-[scaleIn_0.18s_ease-out]"
-            onClick={e => e.stopPropagation()}
+            role="presentation"
+            onClick={() => setImageModalOpen(false)}
+            className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/25 p-4 backdrop-blur-sm sm:p-6"
           >
-            <button
-              onClick={() => setImageModalOpen(false)}
-              className="absolute -top-4 -right-4 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center border-0 cursor-pointer transition-colors z-10"
-              aria-label="Close"
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label={`${displayName}'s profile photo`}
+              onClick={event => event.stopPropagation()}
+              className="w-full max-w-[420px] overflow-hidden rounded-[20px] border border-gray-200 bg-white p-4 shadow-[0_24px_70px_rgba(15,23,42,0.2)] animate-[scaleIn_0.18s_ease-out] dark:border-slate-700 dark:bg-[#0f172a] sm:p-5"
             >
-              <X size={18} />
-            </button>
-
-            <div className="w-72 h-72 rounded-3xl overflow-hidden shadow-2xl ring-4 ring-white/10">
-              {activeAvatar ? (
-                <img src={activeAvatar} alt={displayName} className="w-full h-full object-cover" />
-              ) : (
-                <Avatar name={displayName} size={288} />
-              )}
+              <div className="mb-3 flex items-center justify-between gap-3 border-b border-gray-200 pb-3 dark:border-slate-700">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <h3 className="m-0 truncate text-lg font-bold text-gray-900 dark:text-slate-100">{displayName}</h3>
+                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Active now
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Close photo preview"
+                  onClick={() => setImageModalOpen(false)}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-0 bg-transparent text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="flex min-h-[180px] items-center justify-center rounded-2xl bg-gray-50 p-2 dark:bg-slate-900/70 sm:min-h-[240px]">
+                {activeAvatar
+                  ? <img src={activeAvatar} alt={displayName} className="max-h-[min(40vh,300px)] max-w-full rounded-xl object-contain shadow-sm" />
+                  : <Avatar name={displayName} size={180} />}
+              </div>
             </div>
-
-            <p className="text-white/60 text-xs mt-3 font-medium">{displayName}</p>
-          </div>
-        </div>
+          </div>,
+          document.body,
+        )
       )}
     </div>
   )

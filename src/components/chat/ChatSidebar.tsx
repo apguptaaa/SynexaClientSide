@@ -19,7 +19,8 @@ export function ChatSidebar({
   onOpenAIChat,
   aiChatOpen,
   onDeleteRooms,
-  me
+  me,
+  typingUsers
 }: {
   rooms: Room[]
   filteredRooms: Room[]
@@ -35,6 +36,7 @@ export function ChatSidebar({
   aiChatOpen: boolean
   onDeleteRooms: (rooms: Room[]) => void
   me: User | null
+  typingUsers?: Record<string, string[]>
 }) {
   const [actionsOpen, setActionsOpen] = useState(false)
   const [selectionMode, setSelectionMode] = useState(false)
@@ -221,7 +223,8 @@ export function ChatSidebar({
             selected={selectedRoomIds.has(r.id)}
             onToggleSelection={() => toggleRoomSelection(r.id)}
             onClick={() => openRoom(r)}
-            unreadCount={unreadCounts[r.id] || 0} />
+            unreadCount={unreadCounts[r.id] || 0}
+            typers={typingUsers?.[r.id]} />
         ))}
       </div>
     </div>

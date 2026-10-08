@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { Room, User } from '../../types/chat'
 import { IcoGroup } from '../common/Icons'
 import { Avatar } from '../common/Avatar'
@@ -22,6 +24,8 @@ export function ContactInfoSidebar({
   onRemoveContact: () => void
   onViewCallHistory?: () => void
 }) {
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false)
+
   if (!showContactProfile) return null
 
   return (
@@ -60,14 +64,22 @@ export function ContactInfoSidebar({
                   <IcoGroup size={44} />
                 </div>
               ) : (
-                <div className="ring-4 ring-blue-100 dark:ring-blue-900/50 rounded-full shadow-[0_8px_32px_rgba(37,99,235,0.15)] transition-all duration-300 hover:shadow-[0_12px_40px_rgba(37,99,235,0.25)] hover:ring-blue-200">
-                  <Avatar name={curName} src={curAvatar} size={120} online={curOther?.isOnline} />
+                <div className="relative">
+                  <button
+                    type="button"
+                    aria-label={`View ${curName}'s profile photo`}
+                    onClick={() => setImagePreviewOpen(true)}
+                    className="block rounded-full border-0 bg-transparent p-0 cursor-zoom-in ring-4 ring-blue-100 shadow-[0_8px_32px_rgba(37,99,235,0.15)] transition-all duration-300 hover:shadow-[0_12px_40px_rgba(37,99,235,0.25)] hover:ring-blue-200 dark:ring-blue-900/50"
+                  >
+                    <Avatar name={curName} src={curAvatar} size={120} />
+                  </button>
+                  {curOther?.isOnline && (
+                    <span
+                      aria-label="Online"
+                      className="pointer-events-none absolute bottom-0 right-0 h-4 w-4 translate-x-1/4 translate-y-1/4 rounded-full border-2 border-white bg-green-500 shadow-sm dark:border-[#0f172a]"
+                    />
+                  )}
                 </div>
-              )}
-
-              {/* Online indicator for non-group */}
-              {!activeRoom?.isGroup && curOther?.isOnline && (
-                <div className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-slate-900 shadow-sm"></div>
               )}
             </div>
 
@@ -149,6 +161,55 @@ export function ContactInfoSidebar({
           )}
         </div>
       </div>
+      {imagePreviewOpen && !activeRoom?.isGroup && createPortal(
+        <div
+          role="presentation"
+          onClick={() => setImagePreviewOpen(false)}
+          className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/25 p-4 backdrop-blur-sm sm:p-6"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${curName}'s profile photo`}
+            onClick={event => event.stopPropagation()}
+            className="w-full max-w-[420px] overflow-hidden rounded-[20px] border border-gray-200 bg-white p-4 shadow-[0_24px_70px_rgba(15,23,42,0.2)] dark:border-slate-700 dark:bg-[#0f172a] sm:p-5 animate-[scaleIn_0.18s_ease-out]"
+          >
+            <div className="mb-3 flex items-center justify-between gap-3 border-b border-gray-200 pb-3 dark:border-slate-700">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <h3 className="m-0 truncate text-lg font-bold text-gray-900 dark:text-slate-100">{curName}</h3>
+                {curOther?.isOnline && (
+                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Online
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                aria-label="Close photo preview"
+                onClick={() => setImagePreviewOpen(false)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-0 bg-transparent text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="m18 6-12 12M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex min-h-[180px] items-center justify-center rounded-2xl bg-gray-50 p-2 dark:bg-slate-900/70 sm:min-h-[240px]">
+              {curAvatar ? (
+                <img
+                  src={curAvatar}
+                  alt={`${curName}'s profile`}
+                  className="max-h-[min(40vh,300px)] max-w-full rounded-xl object-contain shadow-sm"
+                />
+              ) : (
+                <Avatar name={curName} size={180} />
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   )
 }

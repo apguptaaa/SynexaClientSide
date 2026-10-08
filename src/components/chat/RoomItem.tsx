@@ -3,13 +3,16 @@ import { roomName, roomAvatar, otherUser, fmtSidebarTime, seedColor } from '../.
 import { Avatar } from '../common/Avatar'
 import { IcoGroup, IcoCheckSeen, IcoCheckDelivered, IcoCheckSent } from '../common/Icons'
 
-export function RoomItem({ room, myId, active, onClick, selectionMode, selected, onToggleSelection, unreadCount }: {
-  room: Room; myId: string; active: boolean; onClick: () => void; selectionMode: boolean; selected: boolean; onToggleSelection: () => void; unreadCount?: number
+export function RoomItem({ room, myId, active, onClick, selectionMode, selected, onToggleSelection, unreadCount, typers }: {
+  room: Room; myId: string; active: boolean; onClick: () => void; selectionMode: boolean; selected: boolean; onToggleSelection: () => void; unreadCount?: number; typers?: string[]
 }) {
   const name = roomName(room, myId)
   const avatar = roomAvatar(room, myId)
   const lastMsg = room.messages[0]
   const other = room.isGroup ? null : otherUser(room, myId)
+
+  const isTyping = Boolean(typers && typers.length > 0)
+  const typingText = isTyping ? 'typing...' : ''
 
   const preview = lastMsg
     ? (lastMsg.fileType?.startsWith('image/') ? '📷 Photo' : lastMsg.fileType ? '📎 File' : lastMsg.text ?? '')
@@ -65,17 +68,30 @@ export function RoomItem({ room, myId, active, onClick, selectionMode, selected,
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1.5">
-          {lastMsg?.senderId === myId && (
-            <span className="opacity-70">
-              {(lastMsg.status === 'seen' || lastMsg.readTime || lastMsg.readAt) ? <IcoCheckSeen /> :
-                (lastMsg.status === 'delivered' || lastMsg.deliveredTime || lastMsg.deliveredAt) ? <IcoCheckDelivered /> :
-                  <IcoCheckSent />}
-            </span>
+        <div className="flex items-center gap-1.5 min-h-[20px]">
+          {isTyping ? (
+            <div className="text-[0.8rem] text-emerald-600 dark:text-emerald-400 font-semibold italic flex items-center gap-1.5 min-w-0 flex-1">
+              <span className="inline-flex items-center gap-0.5 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+              </span>
+              <span className="truncate">{typingText}</span>
+            </div>
+          ) : (
+            <>
+              {lastMsg?.senderId === myId && (
+                <span className="opacity-70 shrink-0">
+                  {(lastMsg.status === 'seen' || lastMsg.readTime || lastMsg.readAt) ? <IcoCheckSeen color="#38bdf8" /> :
+                    (lastMsg.status === 'delivered' || lastMsg.deliveredTime || lastMsg.deliveredAt) ? <IcoCheckDelivered /> :
+                      <IcoCheckSent />}
+                </span>
+              )}
+              <div className="text-[0.8rem] text-gray-500 dark:text-slate-400 overflow-hidden text-ellipsis whitespace-nowrap flex-1 font-medium">
+                {preview || <span>No messages yet</span>}
+              </div>
+            </>
           )}
-          <div className="text-[0.8rem] text-gray-500 dark:text-slate-400 overflow-hidden text-ellipsis whitespace-nowrap flex-1 font-medium">
-            {preview || <span>No messages yet</span>}
-          </div>
           {(unreadCount ?? 0) > 0 && (
             <div className="bg-[#2563eb] text-white text-[0.7rem] font-bold rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1.5 shrink-0">
               {unreadCount}
