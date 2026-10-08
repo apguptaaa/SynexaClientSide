@@ -161,14 +161,20 @@ export function ChatArea({
             <div className="flex-1 min-w-0 flex flex-col justify-center cursor-pointer" onClick={() => setShowContactProfile(true)}>
               <div className="font-bold text-[1.1rem] text-[#1f2937] dark:text-slate-100 tracking-[-0.01em]">{curName}</div>
               <div className="text-[0.8rem] font-medium text-gray-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
-                {!activeRoom.isGroup && curOther?.isOnline && (
-                  <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+                {(typingUsers[activeRoom.id] ?? []).length > 0 ? (
+                  <span className="text-emerald-500 dark:text-emerald-400 font-semibold italic">typing...</span>
+                ) : (
+                  <>
+                    {!activeRoom.isGroup && curOther?.isOnline && (
+                      <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+                    )}
+                    {activeRoom.isGroup
+                      ? `${activeRoom.members.length} members`
+                      : curOther?.isOnline ? 'Online'
+                        : curOther?.lastSeenAt ? fmtLastSeen(curOther.lastSeenAt)
+                          : 'Offline'}
+                  </>
                 )}
-                {activeRoom.isGroup
-                  ? `${activeRoom.members.length} members`
-                  : curOther?.isOnline ? 'Online'
-                    : curOther?.lastSeenAt ? fmtLastSeen(curOther.lastSeenAt)
-                      : 'Offline'}
               </div>
             </div>
 
@@ -482,13 +488,10 @@ export function ChatArea({
             {/* Typing indicator */}
             {activeRoom && (typingUsers[activeRoom.id] ?? []).length > 0 && (
               <div className="flex justify-start mb-2 ml-10">
-                <div className="chat-typing-enter bg-gray-100 dark:bg-slate-800 rounded-2xl px-4 py-2.5 flex items-center gap-2">
-                  <span className="text-[0.82rem] font-medium text-gray-500">
-                    {(typingUsers[activeRoom.id] ?? []).join(', ')} {(typingUsers[activeRoom.id] ?? []).length === 1 ? 'is' : 'are'} typing
-                  </span>
-                  <span className="flex gap-1 items-center">
+                <div className="chat-typing-enter bg-gray-100 dark:bg-slate-800 rounded-2xl px-4 py-3 flex items-center justify-center">
+                  <span className="flex gap-1.5 items-center">
                     {[0, 1, 2].map(i => (
-                      <span key={i} className="typing-dot bg-gray-400" style={{ animationDelay: `${i * 0.2}s` }} />
+                      <span key={i} className="typing-dot bg-gray-400 dark:bg-gray-500" style={{ animationDelay: `${i * 0.2}s` }} />
                     ))}
                   </span>
                 </div>
@@ -621,7 +624,7 @@ export function ChatArea({
               title="Send" 
               onClick={() => send()} 
               disabled={sending || (!inputText.trim() && !attachedFile)}
-              className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-[#2563eb] text-white flex items-center justify-center border-none shrink-0 cursor-pointer hover:bg-[#1d4ed8] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-11 h-11 md:w-12 md:h-12 self-center rounded-xl bg-[#2563eb] text-white flex items-center justify-center border-none shrink-0 cursor-pointer hover:bg-[#1d4ed8] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <IcoSend color="white" />
             </button>

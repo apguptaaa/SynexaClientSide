@@ -71,7 +71,7 @@ export function LoginPage() {
         localStorage.setItem('refreshToken', data.refreshToken)
       }
 
-      window.location.href = '/home'
+      window.location.replace('/home')
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message || 'An error occurred during login')
@@ -124,7 +124,7 @@ export function LoginPage() {
               localStorage.setItem('refreshToken', data.refreshToken)
             }
 
-            window.location.href = '/home'
+            window.location.replace('/home')
           } catch (err: unknown) {
             if (err instanceof Error) {
               setError(err.message || 'Google login failed')

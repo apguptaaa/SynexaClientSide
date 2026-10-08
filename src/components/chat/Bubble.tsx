@@ -188,7 +188,7 @@ export function Bubble({ msg, isSelf, showSender, isLast, onDelete, animate = fa
             </span>
             {isSelf && (
               <span className="opacity-90">
-                {(msg.status === 'seen' || msg.readTime || msg.readAt) ? <IcoCheckSeen /> :
+                {(msg.status === 'seen' || msg.readTime || msg.readAt) ? <IcoCheckSeen color="#38bdf8" /> :
                   (msg.status === 'delivered' || msg.deliveredTime || msg.deliveredAt) ? <IcoCheckDelivered color="#fff" /> :
                     <IcoCheckSent color="#fff" />}
               </span>

@@ -31,8 +31,19 @@ type ConfirmAction = {
   run: () => void | Promise<void>
 }
 
+/** Count messages in a room that the current user hasn't read yet */
+function countUnread(room: Room, myId: string): number {
+  return room.messages.filter(
+    m =>
+      m.senderId !== myId &&
+      m.status !== 'seen' &&
+      !m.readAt &&
+      !m.readTime
+  ).length
+}
+
 function withDeliveryStatus(message: Message, room: Room | undefined, userId: string | undefined): Message {
-  if (message.senderId !== userId || message.status === 'seen' || !message.deliveredTo) return message
+  if (message.senderId !== userId || message.status === 'seen' || message.readAt || message.readTime || !message.deliveredTo) return message
 
   const recipientIds = room?.members
     .map(member => member.userId)
@@ -234,14 +245,37 @@ export function HomePage() {
         .filter(message =>
           message.senderId !== me?.id &&
           message.status !== 'seen' &&
+          !message.readAt &&
+          !message.readTime &&
           !locallySeenMessageIds.current.has(message.id)
         )
         .map(message => message.id)
-      const firstUnread = chronologicalMessages.find(message => unseenIds.includes(message.id))
-      if (firstUnread) showNewMessageDivider(firstUnread.id)
-      if (unseenIds.length > 0) {
-        unseenIds.forEach(messageId => locallySeenMessageIds.current.add(messageId))
-        const newlySeenIds = new Set(unseenIds)
+
+      // Use the badge unread count as ground truth for the divider position.
+      // If the count says 5, the last 5 messages from others are "new" — place divider above the first.
+      const badgeCount = unreadCounts[room.id] || 0
+      const msgsFromOthers = chronologicalMessages.filter(m => m.senderId !== me?.id)
+      let firstNewMessageId: string | null = null
+      if (badgeCount > 0 && msgsFromOthers.length > 0) {
+        const startIdx = Math.max(0, msgsFromOthers.length - badgeCount)
+        firstNewMessageId = msgsFromOthers[startIdx]?.id ?? null
+      } else if (unseenIds.length > 0) {
+        // Fallback: use status-based detection when there's no badge count
+        firstNewMessageId = chronologicalMessages.find(m => unseenIds.includes(m.id))?.id ?? null
+      }
+      if (firstNewMessageId) showNewMessageDivider(firstNewMessageId)
+
+      // Build the full set of IDs to mark as seen:
+      // Union of status-based unseenIds + the N messages from the badge count
+      const countBasedIds = badgeCount > 0 && msgsFromOthers.length > 0
+        ? msgsFromOthers.slice(Math.max(0, msgsFromOthers.length - badgeCount)).map(m => m.id)
+        : []
+      const allToMarkSeen = Array.from(new Set([...unseenIds, ...countBasedIds]))
+        .filter(id => !locallySeenMessageIds.current.has(id))
+
+      if (allToMarkSeen.length > 0) {
+        allToMarkSeen.forEach(messageId => locallySeenMessageIds.current.add(messageId))
+        const newlySeenIds = new Set(allToMarkSeen)
         setMessages(previous => previous.map(message =>
           newlySeenIds.has(message.id) ? { ...message, status: 'seen' as const } : message
         ))
@@ -254,8 +288,8 @@ export function HomePage() {
             }
           : existingRoom
         ))
-        if (!socketService.emitSeen(room.id, unseenIds)) {
-          chatService.markSeen(room.id, unseenIds).catch(error => console.error('Failed to mark messages as seen:', error))
+        if (!socketService.emitSeen(room.id, allToMarkSeen)) {
+          chatService.markSeen(room.id, allToMarkSeen).catch(error => console.error('Failed to mark messages as seen:', error))
         }
       }
       setUnreadCounts(previous => ({ ...previous, [room.id]: 0 }))
@@ -285,16 +319,20 @@ export function HomePage() {
         setMe(profile)
         setRooms(sortRooms(list))
 
+        // Compute initial unread counts from the rooms list so they survive page refreshes
+        const initialCounts: Record<string, number> = {}
+        list.forEach(room => {
+          const count = countUnread(room, profile.id)
+          if (count > 0) initialCounts[room.id] = count
+        })
+        setUnreadCounts(initialCounts)
+
         callsService.getUnreadMissedCallNotifications().then(notifications => {
           setMissedCallNotifications(previous => {
             const byId = new Map(notifications.map(notification => [notification.id, notification]))
             previous.forEach(notification => byId.set(notification.id, notification))
             return [...byId.values()]
           })
-          const missedCall = notifications[0]
-          if (!missedCall) return
-          if (toastTimer.current) clearTimeout(toastTimer.current)
-          setToast({ message: missedCall.message, id: missedCall.id, notificationId: missedCall.id })
         }).catch(() => {})
 
         chatService.getMyPreferences().then(preferences => {
@@ -320,6 +358,58 @@ export function HomePage() {
       } catch { /**/ }
     })()
     return () => { socketService.disconnect() }
+  }, [])
+
+  useEffect(() => {
+    const typingTimeouts: Record<string, ReturnType<typeof setTimeout>> = {}
+
+    const handleTypingStart = (p: { roomId: string; userId: string; userName: string }) => {
+      if (p.userId === meRef.current?.id) return
+      const nameToShow = p.userName || 'Someone'
+
+      setTypingUsers(prev => {
+        const roomTypers = prev[p.roomId] || []
+        if (!roomTypers.includes(nameToShow)) {
+          return { ...prev, [p.roomId]: [...roomTypers, nameToShow] }
+        }
+        return prev
+      })
+
+      const timeoutKey = `${p.roomId}_${p.userId}`
+      if (typingTimeouts[timeoutKey]) clearTimeout(typingTimeouts[timeoutKey])
+      typingTimeouts[timeoutKey] = setTimeout(() => {
+        handleTypingStop(p)
+      }, 4000)
+    }
+
+    const handleTypingStop = (p: { roomId: string; userId: string; userName: string }) => {
+      const nameToShow = p.userName || 'Someone'
+      const timeoutKey = `${p.roomId}_${p.userId}`
+      if (typingTimeouts[timeoutKey]) {
+        clearTimeout(typingTimeouts[timeoutKey])
+        delete typingTimeouts[timeoutKey]
+      }
+
+      setTypingUsers(prev => {
+        const roomTypers = prev[p.roomId] || []
+        const filtered = roomTypers.filter(u => u !== nameToShow)
+        if (filtered.length === 0) {
+          const next = { ...prev }
+          delete next[p.roomId]
+          return next
+        }
+        return { ...prev, [p.roomId]: filtered }
+      })
+    }
+
+    socketService.onTypingStart(handleTypingStart)
+    socketService.onTypingStop(handleTypingStop)
+
+    return () => {
+      socketService.offTypingStart(handleTypingStart)
+      socketService.offTypingStop(handleTypingStop)
+      Object.values(typingTimeouts).forEach(clearTimeout)
+    }
   }, [])
 
   useEffect(() => {
@@ -360,7 +450,6 @@ export function HomePage() {
           if (!socketService.emitSeen(msg.roomId, [msg.id])) {
             chatService.markSeen(msg.roomId, [msg.id]).catch(error => console.error('Failed to mark message as seen:', error))
           }
-          showNewMessageDivider(msg.id)
         } else {
           socketService.emitDelivered(msg.roomId, [msg.id])
           setUnreadCounts(prev => ({ ...prev, [msg.roomId]: (prev[msg.roomId] || 0) + 1 }))
@@ -437,25 +526,43 @@ export function HomePage() {
     }
 
     const handleSeen = (payload: any) => {
-      const { roomId } = payload;
+      const { roomId, userId: seenByUserId } = payload;
       const messageIds: string[] = Array.isArray(payload.messageIds)
         ? payload.messageIds
         : Array.isArray(payload.entries)
           ? payload.entries.map((entry: { messageId: string }) => entry.messageId)
           : [];
       const seenIds = new Set(messageIds);
+
+      // The seen event is sent by the RECEIVER (seenByUserId).
+      // We only care if it's NOT us who saw — meaning someone else read our messages.
+      // If meRef is not yet set, we still proceed and rely on roomId/messageIds to scope correctly.
+      const myId = meRef.current?.id;
+      const isSeenByOther = !myId || seenByUserId !== myId;
+      if (!isSeenByOther) return; // we saw our own messages — nothing to update for blue ticks
+
       setMessages(prev => prev.map(m => {
-        if (m.senderId !== meRef.current?.id) return m;
-        if (seenIds.has(m.id)) return { ...m, status: 'seen' as const };
-        if (messageIds.length === 0 && (!roomId || m.roomId === roomId) && m.status !== 'seen') return { ...m, status: 'seen' as const };
+        // Only update messages sent by ME in this room
+        if (myId && m.senderId !== myId) return m;
+        if (roomId && m.roomId !== roomId) return m;
+        if (seenIds.size > 0) {
+          if (seenIds.has(m.id)) return { ...m, status: 'seen' as const };
+          return m;
+        }
+        // No specific IDs — mark all non-seen messages in this room as seen
+        if (m.status !== 'seen') return { ...m, status: 'seen' as const };
         return m;
       }))
       setRooms(prev => prev.map(r => {
+        if (roomId && r.id !== roomId) return r;
         let changed = false;
         const newMsgs = r.messages.map(m => {
-          if (m.senderId !== meRef.current?.id) return m;
-          if (seenIds.has(m.id)) { changed = true; return { ...m, status: 'seen' as const }; }
-          if (messageIds.length === 0 && (!roomId || r.id === roomId) && m.status !== 'seen') { changed = true; return { ...m, status: 'seen' as const }; }
+          if (myId && m.senderId !== myId) return m;
+          if (seenIds.size > 0) {
+            if (seenIds.has(m.id)) { changed = true; return { ...m, status: 'seen' as const }; }
+            return m;
+          }
+          if (m.status !== 'seen') { changed = true; return { ...m, status: 'seen' as const }; }
           return m;
         });
         return changed ? { ...r, messages: newMsgs } : r;
@@ -495,30 +602,20 @@ export function HomePage() {
     }
 
     const handleNotification = (n: Notification) => {
-      if (toastTimer.current) clearTimeout(toastTimer.current)
       if (n.type === 'missed_call') {
         setMissedCallNotifications(previous => [n, ...previous.filter(notification => notification.id !== n.id)])
       }
-        if (n.type === 'message' && n.payload?.roomId) {
-          const room = roomsRef.current.find(candidate => candidate.id === n.payload?.roomId)
-          const sender = room?.members.find(member => member.userId === n.payload?.senderId)?.user
-          const senderName = sender?.name ?? room?.name ?? 'New message'
-          const preview = n.payload.text?.trim() || 'Sent you an attachment'
-          setToast({
-            message: preview,
-            id: n.id,
-            title: senderName,
-            avatarName: senderName,
-            avatarUrl: sender?.avatarUrl,
-            roomId: n.payload.roomId,
-          })
-        } else {
-          setToast({ message: n.message, id: n.id, notificationId: n.id })
-        }
-        if (n.type !== 'missed_call') {
-          toastTimer.current = setTimeout(() => setToast(null), n.type === 'message' ? 7000 : 4000)
-        }
+      // Skip message-type notifications — handleNewMessage already shows the popup toast for those
+      if (n.type === 'message') return
+      // Skip notifications for the active room
+      if (n.payload?.roomId && activeRef.current?.id === n.payload.roomId) return
+
+      if (toastTimer.current) clearTimeout(toastTimer.current)
+      setToast({ message: n.message, id: n.id, notificationId: n.id })
+      if (n.type !== 'missed_call') {
+        toastTimer.current = setTimeout(() => setToast(null), 4000)
       }
+    }
 
     socketService.onNewMessage(handleNewMessage)
     socketService.onMessageDeleted(handleMessageDeleted)
@@ -794,7 +891,7 @@ export function HomePage() {
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
     sessionStorage.removeItem('activeRoomId') // cleanup just in case
-    window.location.href = '/login'
+    window.location.replace('/login')
   }
 
   const openProfile = () => {
@@ -988,6 +1085,7 @@ export function HomePage() {
           }}
           aiChatOpen={aiChatOpen}
           onDeleteRooms={deleteRooms}
+          typingUsers={typingUsers}
         />
       </div>
 

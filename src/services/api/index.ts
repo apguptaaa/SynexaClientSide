@@ -17,7 +17,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
   if (res.status === 401) {
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
-    window.location.href = '/login'
+    window.location.replace('/login')
     throw new Error('Unauthorized')
   }
   const body = await res.text()
@@ -58,7 +58,7 @@ export const api = {
     if (res.status === 401) {
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
-      window.location.href = '/login'
+      window.location.replace('/login')
       throw new Error('Unauthorized')
     }
     if (!res.ok) {
